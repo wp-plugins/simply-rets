@@ -20,21 +20,20 @@ the plugin does what you're looking for. Getting started with the
 Simply Rets plugin is as easy as installing it and creating a new
 page!
 
-In order to get *your* properties on your site, there are only a
-couple of things you need: * You must be a current member of an MLS
-provider. This is who we get your properties from (which we'll take
-care of).  * You must have an active plan with [Simply
-Rets](http://simplyrets.com). We offer a wide variety of plans to
-accommodate most situations. Visit our website for me details on
-pricing and how to get started.
+In order to get your properties on your site, there are only a
+couple of things you need:
+
+* You must be a current member of an MLS provider. This is who we get your properties from (which we'll take care of).
+* You must have an active plan with [Simply Rets](http://simplyrets.com). We offer a wide variety of plans to accommodate most situations. Visit our website for me details on pricing and how to get started.
 
 The Simply Rets plugin generates accurate and correct HTML and does
-*not* use i-frames or ever take your visitors away from your site -
+*not* use iframes or ever take your visitors away from your site -
 which we've learned is essential for materializing online leads. The
 power is put back in your hands by giving you full control of which of
 your listings to show, and on which pages.
 
 The plugin also provides you extensions on many standard Wordpress features:
+
 * A custom 'Rets Listings' page type for creating pages with listing results.
 * Sidebar and footer widgets for Featured Listings, Search, etc.
 * Plenty of short-codes for splicing your listings into any page or post.
@@ -47,7 +46,7 @@ allows). This means that you're ahead of the competition and can have
 the fastest possible response time for dealing with interested
 prospects.
 
-This plugin is *fast*!. You don't have to worry about slowing down
+This plugin is fast!. You don't have to worry about slowing down
 your website by pulling lots of data on every page load. The Simply
 Rets plugin is optimized to only load on the correct pages, and to
 only load the listings you choose. By doing this, you are able to keep
@@ -71,22 +70,25 @@ spend more time actually selling!
 You can simply install this plugin a couple of different ways:
 
 = Wordpress Plugin Directory =
+
 1. If you usually install plugins via the Wordpress Dashboard 'Add
 Plugins' page, you can just search for 'Simply Rets' and click
 install!
 
 = Install from the .zip: =
+
 1. Download the `.zip` file
-1. In your Wordpress dashboard, go to 'Plugins' -> 'Add New'. Choose
-'Upload a New Plugin' and upload the `.zip` file.
+
+1. In your Wordpress dashboard, go to `Plugins -> Add New`. Choose `Upload a New Plugin` and upload the `.zip` file.
 
 = Manual install from .zip: =
-1. Download the `.zip` file and extract it into your sites
-`wp-content/plugins` directory
-1. Be sure to extract it into a directory called
-`wp-content/plugins/simply-rets/`.
+
+1. Download the `.zip` file and extract it into your sites `wp-content/plugins` directory
+
+1. Be sure to extract it into a directory called `wp-content/plugins/simply-rets/`.
 
 = Activating =
+
 Once you have the plugin installed via one of the methods above, you
 can go to the Plugins page of your Wordpress site and click `activate`
 on Simply Rets. Once successfully activated, you can start using the
@@ -135,7 +137,7 @@ can contact us at [the Simply Rets
 website](http://simplyrets.com). We'll get you signed up and provide
 you with an API username and password. Starting to use your real
 listings is as easy as plugging the API credentials into the Wordpress
-Admin settings page (Settings -> Simply Rets) and hitting save! If the
+Admin settings page (`Settings -> Simply Rets`) and hitting save! If the
 credentials are valid, your listings will start to show
 automatically. If they are invalid, the test data will continue to be
 used.
