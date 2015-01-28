@@ -103,7 +103,10 @@ class SimplyRetsApiHelper {
     }
 
     public static function simplyRetsClientJs() {
-        wp_register_script( 'simply-rets-client-js', plugins_url( 'js/simply-rets-client.js', __FILE__ ) );
+        wp_register_script( 'simply-rets-client-js',
+                            plugins_url( 'js/simply-rets-client.js', __FILE__ ),
+                            array('jquery')
+        );
         wp_enqueue_script( 'simply-rets-client-js' );
     }
 
@@ -132,7 +135,12 @@ class SimplyRetsApiHelper {
         $stories          = $listing->property->stories;
         $exteriorFeatures = $listing->property->exteriorFeatures;
         $yearBuilt        = $listing->property->yearBuilt;
-        $lotSize          = $listing->property->lotSize; // might be empty
+        $lotSize          = $listing->property->lotSize;
+        if( $lotSize == 0 ) {
+            $lot_sqft = 'n/a';
+        } else {
+            $lot_sqft    = number_format( $lotSize );
+        }
         $fireplaces       = $listing->property->fireplaces;
         $subdivision      = $listing->property->subdivision;
         $roof             = $listing->property->roof;
@@ -157,11 +165,15 @@ class SimplyRetsApiHelper {
             }
         }
         // listing meta information
-        $listing_modified = $listing->modified; // TODO: format date
-        $school_data      = $listing->school->district;
-        $disclaimer       = $listing->disclaimer;
-        $tax_data         = $listing->tax->id;
-        $listing_uid      = $listing->mlsId;
+        $listing_modified    = $listing->modified; // TODO: format date
+        $date_modified       = date("M j, Y", strtotime($listing_modified));
+        $list_date           = $listing->listDate;
+        $list_date_formatted = date("M j, Y", strtotime($list_date));
+
+        $school_data = $listing->school->district;
+        $disclaimer  = $listing->disclaimer;
+        $tax_data    = $listing->tax->id;
+        $listing_uid = $listing->mlsId;
         // street address info
         $postal_code   = $listing->address->postalCode;
         $country       = $listing->address->country;
@@ -173,6 +185,7 @@ class SimplyRetsApiHelper {
         $listing_agent    = $listing->agent->id;
         $list_date        = $listing->listDate;
         $listing_price    = $listing->listPrice;
+        $listing_USD      = '$' . number_format( $listing_price );
         $listing_remarks  = $listing->remarks;
         // mls information
         $mls_status     = $listing->mls->status;
@@ -199,7 +212,7 @@ class SimplyRetsApiHelper {
                 <h3>$bathsFull <small>Baths</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-size">
-                <h3>2500 <small>SqFt</small></h3>
+                <h3>$lot_sqft <small>SqFt</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-status">
                 <h3>$mls_status</h3>
@@ -240,7 +253,7 @@ class SimplyRetsApiHelper {
                   <td>$yearBuilt</td></tr>
                 <tr>
                   <td>Lot Size</td>
-                  <td>$lotSize</td></tr>
+                  <td>$lot_sqft SqFt</td></tr>
                 <tr>
                   <td>Fireplaces</td>
                   <td>$fireplaces</td></tr>
@@ -273,8 +286,11 @@ class SimplyRetsApiHelper {
                   <th colspan="2"><h5>Listing Meta Data</h5></th></tr></thead>
               <tbody>
                 <tr>
-                  <td>List last modified</td>
-                  <td>$listing_modified</td></tr>
+                  <td>Listing date</td>
+                  <td>$list_date_formatted</td></tr>
+                <tr>
+                  <td>Listing last modified</td>
+                  <td>$date_modified</td></tr>
                 <tr>
                   <td>School Data</td>
                   <td>$school_data</td></tr>
@@ -320,7 +336,7 @@ class SimplyRetsApiHelper {
                   <td>$listing_agent</td></tr>
                 <tr>
                   <td>Price</td>
-                  <td>$listing_price</td></tr>
+                  <td>$listing_USD</td></tr>
                 <tr>
                   <td>Remarks</td>
                   <td>$listing_remarks</td></tr>
@@ -378,12 +394,18 @@ HTML;
             $bedrooms    = $listing->property->bedrooms;
             $bathsFull   = $listing->property->bathsFull;
             $lotSize     = $listing->property->lotSize; // might be empty
+            if( $lotSize == 0 ) {
+                $lot_sqft = 'n/a';
+            } else {
+                $lot_sqft    = number_format( $lotSize );
+            }
             $subdivision = $listing->property->subdivision;
             $yearBuilt   = $listing->property->yearBuilt;
             // listing data
             $listing_agent    = $listing->agent->id;
             $listing_price    = $listing->listPrice;
             $list_date        = $listing->listDate;
+            $list_date_formatted = date("M j, Y", strtotime($list_date));
             $listing_USD = '$' . number_format( $listing_price );
             // street address info
             $city    = $listing->address->city;
@@ -419,7 +441,7 @@ HTML;
                       <span>$bathsFull Full Baths</span>
                     </li>
                     <li>
-                      <span>$lotSize Sq Ft</span>
+                      <span>$lot_sqft SqFt</span>
                     </li>
                     <li>
                       <span>Built in $yearBuilt</span>
@@ -427,7 +449,7 @@ HTML;
                   </ul>
                   <ul class="sr-data-column">
                     <li>
-                      <span>In the $subdivision Subdivision</span>
+                      <span>$subdivision</span>
                     </li>
                     <li>
                       <span>The City of $city</span>
@@ -436,7 +458,7 @@ HTML;
                       <span>Listed by $listing_agent</span>
                     </li>
                     <li>
-                      <span>Listed on $list_date</span>
+                      <span>Listed on $list_date_formatted</span>
                     </li>
                   </ul>
                 </div>
@@ -478,30 +500,27 @@ HTML;
 
         foreach ( $response as $listing ) {
             $listing_uid      = $listing->mlsId;
-            // Amenities
+            // widget details
             $bedrooms    = $listing->property->bedrooms;
             $bathsFull   = $listing->property->bathsFull;
-            $lotSize     = $listing->property->lotSize; // might be empty
-            $subdivision = $listing->property->subdivision;
-            $yearBuilt   = $listing->property->yearBuilt;
-            // listing data
-            $listing_agent = $listing->agent->id;
+            $mls_status    = $listing->mls->status;
+            $listing_remarks  = $listing->remarks;
             $listing_price = $listing->listPrice;
-            $list_date     = $listing->listDate;
             $listing_USD   = '$' . number_format( $listing_price );
-            // street address info
-            $city    = $listing->address->city;
+
+            // widget title
             $address = $listing->address->full;
-            // listing photos
+
+            // widget photo
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
                 $listingPhotos[0] = 'http://placehold.it/250x175.jpg';
             }
             $main_photo = $listingPhotos[0];
 
-            $mls_status    = $listing->mls->status;
-            $listing_remarks  = $listing->remarks;
+            // create link to listing
             $listing_link = get_home_url() . "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
+
             // append markup for this listing to the content
             $cont .= <<<HTML
               <div class="sr-listing-wdgt">
@@ -524,7 +543,7 @@ HTML;
                 </div>
                 <div id="sr-listing-wdgt-btn">
                   <a href="$listing_link">
-                    <button class="button real-btn">
+                    <button class="button btn">
                       More about this listing
                     </button>
                   </a>
