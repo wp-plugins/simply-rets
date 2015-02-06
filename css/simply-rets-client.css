@@ -176,7 +176,7 @@ secondary data. For example, set the `.sr-data-column` to
 */
 .sr-data-column {
     display: inline-block;
-    margin: 0px 0px 10px 25px !important;
+    margin: 0px 0px 10px 15px !important;
 }
 
 
@@ -198,6 +198,10 @@ The initial height is dependent on the content.
     </div>
 ```
 */
+
+.sr-details {
+    margin-top: 15px;
+}
 
 .sr-details th {
     background-color: #eee;
@@ -353,11 +357,6 @@ Mostly it will inherit the styles your theme uses for Widgets.
     margin-bottom: 10px !important;
 }
 
-#sr-listing-wdgt-btn a {
-    color: #f6f6f6;
-}
-
-
 /*
 Search Form
 ===
@@ -496,9 +495,10 @@ elsewhere, this should be a breeze.
 
 */
 .slider{
-    width: 650px;
+    max-width: 650px;
+    width: 100%;
     position: relative;
-    padding-top: 420px;
+    padding-top: 485px;
     margin: 10px auto;
     background-color: transparent;
     transition: all 0.5s;
