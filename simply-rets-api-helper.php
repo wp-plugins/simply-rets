@@ -43,7 +43,7 @@ class SimplyRetsApiHelper {
 
     /*
      * This function build a URL from a set of parameters that we'll use to
-     * requst our listings from the Simply Rets API.
+     * requst our listings from the SimplyRETS API.
      *
      * @params is either an associative array in the form of [filter] => "val"
      * or it is a single listing id as a string, ie "123456".
@@ -75,14 +75,46 @@ class SimplyRetsApiHelper {
     }
 
 
-
+    /**
+     * Make the request the SimplyRETS API. We try to use
+     * cURL first, but if it's not enabled on the server, we
+     * fall back to file_get_contents().
+    */
     public static function srApiRequest( $url ) {
-        $request = file_get_contents($url);
-        $response_array = json_decode( $request );
+        $wp_version = get_bloginfo('version');
+        $php_version = phpversion();
 
-        if( $request === FALSE || empty($response_array) ) {
+        $ua_string     = "SimplyRETSWP/1.1.0 Wordpress/{$wp_version} PHP/{$php_version}";
+        $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
+
+        if( is_callable( 'curl_init' ) ) {
+            $ch = curl_init();
+            $curl_info = curl_version();
+            $curl_version = $curl_info['version'];
+            $headers[] = $accept_header;
+            curl_setopt( $ch, CURLOPT_URL, $url );
+            curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+            curl_setopt( $ch, CURLOPT_USERAGENT, $ua_string . " cURL/{$curl_version}" );
+            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+            $request = curl_exec( $ch );
+            $response_array = json_decode( $request );
+            curl_close( $ch );
+
+        } else {
+            $options = array(
+                'http' => array(
+                    'header' => $accept_header,
+                    'user_agent' => $ua_string
+                )
+            );
+            $context = stream_context_create( $options );
+            $request = file_get_contents( $url, false, $context );
+            $response_array = json_decode( $request );
+        }
+
+        if( $response_array === FALSE || empty($response_array) ) {
             $error =
-                "Sorry, Simply Rets could not complete this search." .
+                "Sorry, SimplyRETS could not complete this search." .
                 "Please double check that your API credentials are valid " .
                 "and that the search filters you used are correct. If this " .
                 "is a new listing, you may also try back later.";
@@ -114,12 +146,18 @@ class SimplyRetsApiHelper {
     public static function srResidentialDetailsGenerator( $listing ) {
         $br = "<br>";
         $cont = "";
+        $contact_page = get_option( 'sr_contact_page' );
 
         /*
          * check for an error code in the array first, if it's
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $listing == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $listing ) ) {
             $error = $listing['error'];
             $cont .= "<hr><p>{$error}</p>";
@@ -152,7 +190,7 @@ class SimplyRetsApiHelper {
         // photos data (and set up slideshow markup)
         $photos = $listing->photos;
         if(empty($photos)) {
-            $main_photo = 'http://placehold.it/450x375.jpg';
+             $main_photo = plugins_url( 'img/defprop.jpg', __FILE__ );
         } else {
             $main_photo = $photos[0];
             $photo_counter = 0;
@@ -197,9 +235,11 @@ class SimplyRetsApiHelper {
           <div class="sr-details" style="text-align:left;">
             <p class="sr-details-links" style="clear:both;">
               <span id="sr-toggle-gallery">See more photos</span> |
-              <span id="sr-listing-contact">Contact us about this listing</span>
+              <span id="sr-listing-contact">
+                <a href="$contact_page">Contact us about this listing</a>
+              </span>
             </p>
-            <div class="slider">
+            <div class="sr-slider">
               <img class="sr-slider-img-act" src="$main_photo">
               $photo_markup
             </div>
@@ -376,6 +416,11 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $response == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $response ) ) {
             $error = $response['error'];
             $response_markup = "<hr><p>{$error}</p>";
@@ -413,7 +458,7 @@ HTML;
             // listing photos
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = 'http://placehold.it/250x175.jpg';
+                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
             }
             $main_photo = trim($listingPhotos[0]);
 
@@ -487,6 +532,11 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $response == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $response ) ) {
             $error = $response['error'];
             $response_markup = "<hr><p>{$error}</p>";
@@ -514,7 +564,7 @@ HTML;
             // widget photo
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = 'http://placehold.it/250x175.jpg';
+                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
             }
             $main_photo = $listingPhotos[0];
 

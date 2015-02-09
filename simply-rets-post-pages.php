@@ -38,20 +38,20 @@ class SimplyRetsCustomPostPages {
     // Create our Custom Post Type
     public static function srRegisterPostType() {
         $labels = array(
-            'name'          => __( 'Simply Rets' ),
-            'singular_name' => __( 'Simply Rets Page' ),
-            'add_new_item'  => __( 'New Simply Rets Page' ),
-            'edit_item'     => __( 'Edit Simply Rets Page' ),
-            'new_item'      => __( 'New Simply Rets Page' ),
-            'view_item'     => __( 'View Simply Rets Page' ),
-            'all_items'     => __( 'All Simply Rets Pages' ),
-            'search_items'  => __( 'Search Simply Rets Pages' ),
+            'name'          => __( 'SimplyRETS' ),
+            'singular_name' => __( 'SimplyRETS Page' ),
+            'add_new_item'  => __( 'New SimplyRETS Page' ),
+            'edit_item'     => __( 'Edit SimplyRETS Page' ),
+            'new_item'      => __( 'New SimplyRETS Page' ),
+            'view_item'     => __( 'View SimplyRETS Page' ),
+            'all_items'     => __( 'All SimplyRETS Pages' ),
+            'search_items'  => __( 'Search SimplyRETS Pages' ),
         );
         $args = array(
             'public'          => true,
             'has_archive'     => false,
             'labels'          => $labels,
-            'description'     => 'Simply Rets property listings pages',
+            'description'     => 'SimplyRETS property listings pages',
             'query_var'       => true,
             'menu_positions'  => '15',
             'capability_type' => 'page',
@@ -381,13 +381,14 @@ class SimplyRetsCustomPostPages {
 
             // these should correlate with what the api expects as filters
             $listing_params = array(
-                "type"     => $type,
+                "type"      => $type,
+                "q"         => $keywords,
                 "minbeds"   => $minbeds,
                 "maxbeds"   => $maxbeds,
                 "minbaths"  => $minbaths,
                 "maxbaths"  => $maxbaths,
-                "minprice" => $minprice,
-                "maxprice" => $maxprice
+                "minprice"  => $minprice,
+                "maxprice"  => $maxprice
             );
 
             $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
