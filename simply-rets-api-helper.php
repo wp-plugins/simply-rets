@@ -43,7 +43,7 @@ class SimplyRetsApiHelper {
 
     /*
      * This function build a URL from a set of parameters that we'll use to
-     * requst our listings from the Simply Rets API.
+     * requst our listings from the SimplyRETS API.
      *
      * @params is either an associative array in the form of [filter] => "val"
      * or it is a single listing id as a string, ie "123456".
@@ -75,14 +75,46 @@ class SimplyRetsApiHelper {
     }
 
 
-
+    /**
+     * Make the request the SimplyRETS API. We try to use
+     * cURL first, but if it's not enabled on the server, we
+     * fall back to file_get_contents().
+    */
     public static function srApiRequest( $url ) {
-        $request = file_get_contents($url);
-        $response_array = json_decode( $request );
+        $wp_version = get_bloginfo('version');
+        $php_version = phpversion();
 
-        if( $request === FALSE || empty($response_array) ) {
+        $ua_string     = "SimplyRETSWP/1.1.0 Wordpress/{$wp_version} PHP/{$php_version}";
+        $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
+
+        if( is_callable( 'curl_init' ) ) {
+            $ch = curl_init();
+            $curl_info = curl_version();
+            $curl_version = $curl_info['version'];
+            $headers[] = $accept_header;
+            curl_setopt( $ch, CURLOPT_URL, $url );
+            curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+            curl_setopt( $ch, CURLOPT_USERAGENT, $ua_string . " cURL/{$curl_version}" );
+            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+            $request = curl_exec( $ch );
+            $response_array = json_decode( $request );
+            curl_close( $ch );
+
+        } else {
+            $options = array(
+                'http' => array(
+                    'header' => $accept_header,
+                    'user_agent' => $ua_string
+                )
+            );
+            $context = stream_context_create( $options );
+            $request = file_get_contents( $url, false, $context );
+            $response_array = json_decode( $request );
+        }
+
+        if( $response_array === FALSE || empty($response_array) ) {
             $error =
-                "Sorry, Simply Rets could not complete this search." .
+                "Sorry, SimplyRETS could not complete this search." .
                 "Please double check that your API credentials are valid " .
                 "and that the search filters you used are correct. If this " .
                 "is a new listing, you may also try back later.";
@@ -103,7 +135,10 @@ class SimplyRetsApiHelper {
     }
 
     public static function simplyRetsClientJs() {
-        wp_register_script( 'simply-rets-client-js', plugins_url( 'js/simply-rets-client.js', __FILE__ ) );
+        wp_register_script( 'simply-rets-client-js',
+                            plugins_url( 'js/simply-rets-client.js', __FILE__ ),
+                            array('jquery')
+        );
         wp_enqueue_script( 'simply-rets-client-js' );
     }
 
@@ -111,12 +146,18 @@ class SimplyRetsApiHelper {
     public static function srResidentialDetailsGenerator( $listing ) {
         $br = "<br>";
         $cont = "";
+        $contact_page = get_option( 'sr_contact_page' );
 
         /*
          * check for an error code in the array first, if it's
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $listing == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $listing ) ) {
             $error = $listing['error'];
             $cont .= "<hr><p>{$error}</p>";
@@ -132,7 +173,12 @@ class SimplyRetsApiHelper {
         $stories          = $listing->property->stories;
         $exteriorFeatures = $listing->property->exteriorFeatures;
         $yearBuilt        = $listing->property->yearBuilt;
-        $lotSize          = $listing->property->lotSize; // might be empty
+        $lotSize          = $listing->property->lotSize;
+        if( $lotSize == 0 ) {
+            $lot_sqft = 'n/a';
+        } else {
+            $lot_sqft    = number_format( $lotSize );
+        }
         $fireplaces       = $listing->property->fireplaces;
         $subdivision      = $listing->property->subdivision;
         $roof             = $listing->property->roof;
@@ -144,7 +190,7 @@ class SimplyRetsApiHelper {
         // photos data (and set up slideshow markup)
         $photos = $listing->photos;
         if(empty($photos)) {
-            $main_photo = 'http://placehold.it/450x375.jpg';
+             $main_photo = plugins_url( 'img/defprop.jpg', __FILE__ );
         } else {
             $main_photo = $photos[0];
             $photo_counter = 0;
@@ -157,11 +203,15 @@ class SimplyRetsApiHelper {
             }
         }
         // listing meta information
-        $listing_modified = $listing->modified; // TODO: format date
-        $school_data      = $listing->school->district;
-        $disclaimer       = $listing->disclaimer;
-        $tax_data         = $listing->tax->id;
-        $listing_uid      = $listing->mlsId;
+        $listing_modified    = $listing->modified; // TODO: format date
+        $date_modified       = date("M j, Y", strtotime($listing_modified));
+        $list_date           = $listing->listDate;
+        $list_date_formatted = date("M j, Y", strtotime($list_date));
+
+        $school_data = $listing->school->district;
+        $disclaimer  = $listing->disclaimer;
+        $tax_data    = $listing->tax->id;
+        $listing_uid = $listing->mlsId;
         // street address info
         $postal_code   = $listing->address->postalCode;
         $country       = $listing->address->country;
@@ -173,6 +223,7 @@ class SimplyRetsApiHelper {
         $listing_agent    = $listing->agent->id;
         $list_date        = $listing->listDate;
         $listing_price    = $listing->listPrice;
+        $listing_USD      = '$' . number_format( $listing_price );
         $listing_remarks  = $listing->remarks;
         // mls information
         $mls_status     = $listing->mls->status;
@@ -184,9 +235,11 @@ class SimplyRetsApiHelper {
           <div class="sr-details" style="text-align:left;">
             <p class="sr-details-links" style="clear:both;">
               <span id="sr-toggle-gallery">See more photos</span> |
-              <span id="sr-listing-contact">Contact us about this listing</span>
+              <span id="sr-listing-contact">
+                <a href="$contact_page">Contact us about this listing</a>
+              </span>
             </p>
-            <div class="slider">
+            <div class="sr-slider">
               <img class="sr-slider-img-act" src="$main_photo">
               $photo_markup
             </div>
@@ -199,7 +252,7 @@ class SimplyRetsApiHelper {
                 <h3>$bathsFull <small>Baths</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-size">
-                <h3>2500 <small>SqFt</small></h3>
+                <h3>$lot_sqft <small>SqFt</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-status">
                 <h3>$mls_status</h3>
@@ -240,7 +293,7 @@ class SimplyRetsApiHelper {
                   <td>$yearBuilt</td></tr>
                 <tr>
                   <td>Lot Size</td>
-                  <td>$lotSize</td></tr>
+                  <td>$lot_sqft SqFt</td></tr>
                 <tr>
                   <td>Fireplaces</td>
                   <td>$fireplaces</td></tr>
@@ -273,8 +326,11 @@ class SimplyRetsApiHelper {
                   <th colspan="2"><h5>Listing Meta Data</h5></th></tr></thead>
               <tbody>
                 <tr>
-                  <td>List last modified</td>
-                  <td>$listing_modified</td></tr>
+                  <td>Listing date</td>
+                  <td>$list_date_formatted</td></tr>
+                <tr>
+                  <td>Listing last modified</td>
+                  <td>$date_modified</td></tr>
                 <tr>
                   <td>School Data</td>
                   <td>$school_data</td></tr>
@@ -320,7 +376,7 @@ class SimplyRetsApiHelper {
                   <td>$listing_agent</td></tr>
                 <tr>
                   <td>Price</td>
-                  <td>$listing_price</td></tr>
+                  <td>$listing_USD</td></tr>
                 <tr>
                   <td>Remarks</td>
                   <td>$listing_remarks</td></tr>
@@ -360,6 +416,11 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $response == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $response ) ) {
             $error = $response['error'];
             $response_markup = "<hr><p>{$error}</p>";
@@ -378,12 +439,18 @@ HTML;
             $bedrooms    = $listing->property->bedrooms;
             $bathsFull   = $listing->property->bathsFull;
             $lotSize     = $listing->property->lotSize; // might be empty
+            if( $lotSize == 0 ) {
+                $lot_sqft = 'n/a';
+            } else {
+                $lot_sqft    = number_format( $lotSize );
+            }
             $subdivision = $listing->property->subdivision;
             $yearBuilt   = $listing->property->yearBuilt;
             // listing data
             $listing_agent    = $listing->agent->id;
             $listing_price    = $listing->listPrice;
             $list_date        = $listing->listDate;
+            $list_date_formatted = date("M j, Y", strtotime($list_date));
             $listing_USD = '$' . number_format( $listing_price );
             // street address info
             $city    = $listing->address->city;
@@ -391,9 +458,9 @@ HTML;
             // listing photos
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = 'http://placehold.it/250x175.jpg';
+                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
             }
-            $main_photo = $listingPhotos[0];
+            $main_photo = trim($listingPhotos[0]);
 
             $listing_link = get_home_url() . "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
             // append markup for this listing to the content
@@ -401,7 +468,7 @@ HTML;
               <hr>
               <div class="sr-listing">
                 <a href="$listing_link">
-                  <div class="sr-photo" style="background-image:url($main_photo);">
+                  <div class="sr-photo" style="background-image:url('$main_photo');">
                   </div>
                 </a>
                 <div class="sr-primary-data">
@@ -419,7 +486,7 @@ HTML;
                       <span>$bathsFull Full Baths</span>
                     </li>
                     <li>
-                      <span>$lotSize Sq Ft</span>
+                      <span>$lot_sqft SqFt</span>
                     </li>
                     <li>
                       <span>Built in $yearBuilt</span>
@@ -427,7 +494,7 @@ HTML;
                   </ul>
                   <ul class="sr-data-column">
                     <li>
-                      <span>In the $subdivision Subdivision</span>
+                      <span>$subdivision</span>
                     </li>
                     <li>
                       <span>The City of $city</span>
@@ -436,7 +503,7 @@ HTML;
                       <span>Listed by $listing_agent</span>
                     </li>
                     <li>
-                      <span>Listed on $list_date</span>
+                      <span>Listed on $list_date_formatted</span>
                     </li>
                   </ul>
                 </div>
@@ -465,6 +532,11 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        if( $response == NULL ) {
+            $err = "SimplyRETS could not complete this search. Please check your " .
+                "credentials and try again.";
+            return $err;
+        }
         if( array_key_exists( "error", $response ) ) {
             $error = $response['error'];
             $response_markup = "<hr><p>{$error}</p>";
@@ -478,30 +550,27 @@ HTML;
 
         foreach ( $response as $listing ) {
             $listing_uid      = $listing->mlsId;
-            // Amenities
+            // widget details
             $bedrooms    = $listing->property->bedrooms;
             $bathsFull   = $listing->property->bathsFull;
-            $lotSize     = $listing->property->lotSize; // might be empty
-            $subdivision = $listing->property->subdivision;
-            $yearBuilt   = $listing->property->yearBuilt;
-            // listing data
-            $listing_agent = $listing->agent->id;
+            $mls_status    = $listing->mls->status;
+            $listing_remarks  = $listing->remarks;
             $listing_price = $listing->listPrice;
-            $list_date     = $listing->listDate;
             $listing_USD   = '$' . number_format( $listing_price );
-            // street address info
-            $city    = $listing->address->city;
+
+            // widget title
             $address = $listing->address->full;
-            // listing photos
+
+            // widget photo
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = 'http://placehold.it/250x175.jpg';
+                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
             }
             $main_photo = $listingPhotos[0];
 
-            $mls_status    = $listing->mls->status;
-            $listing_remarks  = $listing->remarks;
+            // create link to listing
             $listing_link = get_home_url() . "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
+
             // append markup for this listing to the content
             $cont .= <<<HTML
               <div class="sr-listing-wdgt">
@@ -524,7 +593,7 @@ HTML;
                 </div>
                 <div id="sr-listing-wdgt-btn">
                   <a href="$listing_link">
-                    <button class="button real-btn">
+                    <button class="button btn">
                       More about this listing
                     </button>
                   </a>
