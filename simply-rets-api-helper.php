@@ -84,7 +84,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.1.0 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.1.1 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -142,7 +142,9 @@ class SimplyRetsApiHelper {
         wp_enqueue_script( 'simply-rets-client-js' );
     }
 
-    // generate markup for a single listing's details page
+
+
+
     public static function srResidentialDetailsGenerator( $listing ) {
         $br = "<br>";
         $cont = "";
@@ -164,29 +166,38 @@ class SimplyRetsApiHelper {
             return $cont;
         }
 
-        // Amenities
-        $bedrooms         = $listing->property->bedrooms;
-        $bathsFull        = $listing->property->bathsFull;
-        $interiorFeatures = $listing->property->interiorFeatures;
-        $style            = $listing->property->style;
-        $heating          = $listing->property->heating;
-        $stories          = $listing->property->stories;
-        $exteriorFeatures = $listing->property->exteriorFeatures;
-        $yearBuilt        = $listing->property->yearBuilt;
+        // stories
+        $stories = $listing->property->stories;
+        if( $stories == "" ) {
+            $stories = "";
+        } else {
+            $stories = <<<HTML
+                <tr>
+                  <td>Stories</td>
+                  <td>$stories</td></tr>
+HTML;
+        }
+        // fireplaces
+        $fireplaces = $listing->property->fireplaces;
+        if( $fireplaces == "" ) {
+            $fireplaces = "";
+        } else {
+            $fireplaces = <<<HTML
+                <tr>
+                  <td>Fireplaces</td>
+                  <td>$fireplaces</td></tr>
+HTML;
+        }
+
+        // lot size
         $lotSize          = $listing->property->lotSize;
         if( $lotSize == 0 ) {
             $lot_sqft = 'n/a';
         } else {
             $lot_sqft    = number_format( $lotSize );
         }
-        $fireplaces       = $listing->property->fireplaces;
-        $subdivision      = $listing->property->subdivision;
-        $roof             = $listing->property->roof;
-        // geographic data
-        $geo_directions = $listing->geo->directions;
-        $geo_longitude  = $listing->geo->lng;
-        $geo_latitude   = $listing->geo->lat;
-        $geo_county     = $listing->geo->county;
+
+
         // photos data (and set up slideshow markup)
         $photos = $listing->photos;
         if(empty($photos)) {
@@ -202,15 +213,122 @@ class SimplyRetsApiHelper {
                 $photo_counter++;
             }
         }
+
+        // geographic data
+        $geo_directions = $listing->geo->directions;
+        if( $geo_directions == "" ) {
+            $geo_directions = "";
+        } else {
+            $geo_directions = <<<HTML
+              <thead>
+                <tr>
+                  <th colspan="2"><h5>Geographical Data</h5></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Direction</td>
+                  <td>$geo_directions</td></tr>
+HTML;
+        }
+        // Long
+        $geo_longitude = $listing->geo->lng;
+        if( $geo_longitude == "" ) {
+            $geo_longitude  = "";
+        } else {
+            $geo_longitude = <<<HTML
+                <tr>
+                  <td>Longitude</td>
+                  <td>$geo_longitude</td></tr>
+HTML;
+        }
+        // Long
+        $geo_latitude = $listing->geo->lat;
+        if( $geo_latitude == "" ) {
+            $geo_latitude  = "";
+        } else {
+            $geo_latitude = <<<HTML
+                <tr>
+                  <td>Latitude</td>
+                  <td>$geo_latitude</td></tr>
+HTML;
+        }
+        // Long
+        $geo_county= $listing->geo->county;
+        if( $geo_county == "" ) {
+            $geo_county   = "";
+        } else {
+            $geo_county = <<<HTML
+                <tr>
+                  <td>Latitude</td>
+                  <td>$geo_county</td></tr>
+HTML;
+        }
+
+
+        // school zone data
+        $school_data = $listing->school->district;
+        if( $school_data == "" ) {
+            $school_data = "";
+        } else {
+            $school_data  = <<<HTML
+                <tr>
+                  <td>School Zone</td>
+                  <td>$school_data</td></tr>
+HTML;
+        }
+
+        // days on market
+        $days_on_market = $listing->mls->daysOnMarket;
+        if( $days_on_market == "" ) {
+            $days_on_market = "";
+        } else {
+            $days_on_market = <<<HTML
+                <tr>
+                  <td>Days on Market</td>
+                  <td>$days_on_market</td></tr>
+HTML;
+        }
+
+        // mls area
+        $mls_area       = $listing->mls->area;
+        if( $mls_area == "" ) {
+            $mls_area = "";
+        } else {
+            $mls_area = <<<HTML
+                <tr>
+                  <td>MLS Area</td>
+                  <td>$mls_area</td></tr>
+HTML;
+        }
+
+        // tax data
+        $tax_data    = $listing->tax->id;
+        if( $tax_data == "" ) {
+            $tax_data = "";
+        } else {
+            $tax_data = <<<HTML
+                <tr>
+                  <td>Tax Data</td>
+                  <td>$tax_data</td></tr>
+HTML;
+        }
+
+        // Amenities
+        $bedrooms         = $listing->property->bedrooms;
+        $bathsFull        = $listing->property->bathsFull;
+        $interiorFeatures = $listing->property->interiorFeatures;
+        $style            = $listing->property->style;
+        $heating          = $listing->property->heating;
+        $exteriorFeatures = $listing->property->exteriorFeatures;
+        $yearBuilt        = $listing->property->yearBuilt;
+        $subdivision      = $listing->property->subdivision;
+        $roof             = $listing->property->roof;
         // listing meta information
         $listing_modified    = $listing->modified; // TODO: format date
         $date_modified       = date("M j, Y", strtotime($listing_modified));
         $list_date           = $listing->listDate;
         $list_date_formatted = date("M j, Y", strtotime($list_date));
 
-        $school_data = $listing->school->district;
         $disclaimer  = $listing->disclaimer;
-        $tax_data    = $listing->tax->id;
         $listing_uid = $listing->mlsId;
         // street address info
         $postal_code   = $listing->address->postalCode;
@@ -218,17 +336,22 @@ class SimplyRetsApiHelper {
         $address       = $listing->address->full;
         $city          = $listing->address->city;
         // Listing Data
-        $showing_instructions = $listing->showingInstructions;
         $listing_office   = $listing->office->name;
-        $listing_agent    = $listing->agent->id;
         $list_date        = $listing->listDate;
         $listing_price    = $listing->listPrice;
         $listing_USD      = '$' . number_format( $listing_price );
         $listing_remarks  = $listing->remarks;
+
+        // agent data
+        $listing_agent_id    = $listing->agent->id;
+        $listing_agent_name  = $listing->agent->firstName;
+        $listing_agent_email = $listing->agent->contact->email;
+        if( !$listing_agent_email == "" ) {
+            $listing_agent_name = "<a href='mailto:$listing_agent_email'>$listing_agent_name</a>";
+        }
+
         // mls information
         $mls_status     = $listing->mls->status;
-        $mls_area       = $listing->mls->area;
-        $days_on_market = $listing->mls->daysOnMarket;
 
         // listing markup
         $cont .= <<<HTML
@@ -243,7 +366,6 @@ class SimplyRetsApiHelper {
               <img class="sr-slider-img-act" src="$main_photo">
               $photo_markup
             </div>
-
             <div class="sr-primary-details">
               <div class="sr-detail" id="sr-primary-details-beds">
                 <h3>$bedrooms <small>Beds</small></h3>
@@ -268,6 +390,9 @@ class SimplyRetsApiHelper {
                   <th colspan="2"><h5>Listing Details</h5></th></tr></thead>
               <tbody>
                 <tr>
+                  <td>Price</td>
+                  <td>$listing_USD</td></tr>
+                <tr>
                   <td>Bedrooms</td>
                   <td>$bedrooms</td></tr>
                 <tr>
@@ -282,9 +407,7 @@ class SimplyRetsApiHelper {
                 <tr>
                   <td>Heating</td>
                   <td>$heating</td></tr>
-                <tr>
-                  <td>Stories</td>
-                  <td>$stories</td></tr>
+                $stories
                 <tr>
                   <td>Exterior Features</td>
                   <td>$exteriorFeatures</td></tr>
@@ -294,9 +417,7 @@ class SimplyRetsApiHelper {
                 <tr>
                   <td>Lot Size</td>
                   <td>$lot_sqft SqFt</td></tr>
-                <tr>
-                  <td>Fireplaces</td>
-                  <td>$fireplaces</td></tr>
+                $fireplaces
                 <tr>
                   <td>Subdivision</td>
                   <td>$subdivision</td></tr>
@@ -304,22 +425,10 @@ class SimplyRetsApiHelper {
                   <td>Roof</td>
                   <td>$roof</td></tr>
               </tbody>
-              <thead>
-                <tr>
-                  <th colspan="2"><h5>Geographical Data</h5></th></tr></thead>
-              <tbody>
-                <tr>
-                  <td>Directions</td>
-                  <td>$geo_directions</td></tr>
-                <tr>
-                  <td>County</td>
-                  <td>$geo_county</td></tr>
-                <tr>
-                  <td>Latitude</td>
-                  <td>$geo_latitude</td></tr>
-                <tr>
-                  <td>Longitude</td>
-                  <td>$geo_longitude</td></tr>
+                $geo_directions
+                $geo_county
+                $geo_latitude
+                $geo_longitude
               </tbody>
               <thead>
                 <tr>
@@ -331,15 +440,11 @@ class SimplyRetsApiHelper {
                 <tr>
                   <td>Listing last modified</td>
                   <td>$date_modified</td></tr>
-                <tr>
-                  <td>School Data</td>
-                  <td>$school_data</td></tr>
+                $school_data
                 <tr>
                   <td>Disclaimer</td>
                   <td>$disclaimer</td></tr>
-                <tr>
-                  <td>Tax Data</td>
-                  <td>$tax_data</td></tr>
+                $tax_data
                 <tr>
                   <td>Listing Id</td>
                   <td>$listing_uid</td></tr>
@@ -366,17 +471,11 @@ class SimplyRetsApiHelper {
                   <th colspan="2"><h5>Listing Information</h5></th></tr></thead>
               <tbody>
                 <tr>
-                  <td>Showing Instructions</td>
-                  <td>$showing_instructions</td></tr>
-                <tr>
                   <td>Listing Office</td>
                   <td>$listing_office</td></tr>
                 <tr>
                   <td>Listing Agent</td>
-                  <td>$listing_agent</td></tr>
-                <tr>
-                  <td>Price</td>
-                  <td>$listing_USD</td></tr>
+                  <td>$listing_agent_name</td></tr>
                 <tr>
                   <td>Remarks</td>
                   <td>$listing_remarks</td></tr>
@@ -385,15 +484,11 @@ class SimplyRetsApiHelper {
                 <tr>
                   <th colspan="2"><h5>Mls Information</h5></th></tr></thead>
               <tbody>
-                <tr>
-                  <td>Days on Market</td>
-                  <td>$days_on_market</td></tr>
+                $days_on_market
                 <tr>
                   <td>Mls Status</td>
                   <td>$mls_status</td></tr>
-                <tr>
-                  <td>Mls Area</td>
-                  <td>$mls_area</td></tr>
+                $mls_area
               </tbody>
             </table>
           </div>
@@ -416,19 +511,19 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
-        if( $response == NULL ) {
+        if( $response == "NULL" ) {
             $err = "SimplyRETS could not complete this search. Please check your " .
                 "credentials and try again.";
             return $err;
         }
         if( array_key_exists( "error", $response ) ) {
-            $error = $response['error'];
-            $response_markup = "<hr><p>{$error}</p>";
+            $error = "SimplyRETS could not find any properties matching your criteria. Please try another search.";
+            $response_markup = "<hr><p>{$error}</p><br>";
             return $response_markup;
         }
 
         $response_size = sizeof( $response );
-        if( $response_size <= 1 ) {
+        if( $response_size < 1 ) {
             $response = array( $response );
         }
 
@@ -447,7 +542,9 @@ HTML;
             $subdivision = $listing->property->subdivision;
             $yearBuilt   = $listing->property->yearBuilt;
             // listing data
-            $listing_agent    = $listing->agent->id;
+            $listing_agent_id    = $listing->agent->id;
+            $listing_agent_name  = $listing->agent->firstName;
+
             $listing_price    = $listing->listPrice;
             $list_date        = $listing->listDate;
             $list_date_formatted = date("M j, Y", strtotime($list_date));
@@ -500,7 +597,7 @@ HTML;
                       <span>The City of $city</span>
                     </li>
                     <li>
-                      <span>Listed by $listing_agent</span>
+                      <span>Listed by $listing_agent_name</span>
                     </li>
                     <li>
                       <span>Listed on $list_date_formatted</span>
