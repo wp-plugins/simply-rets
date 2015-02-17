@@ -38,20 +38,20 @@ class SimplyRetsCustomPostPages {
     // Create our Custom Post Type
     public static function srRegisterPostType() {
         $labels = array(
-            'name'          => __( 'Simply Rets' ),
-            'singular_name' => __( 'Simply Rets Page' ),
-            'add_new_item'  => __( 'New Simply Rets Page' ),
-            'edit_item'     => __( 'Edit Simply Rets Page' ),
-            'new_item'      => __( 'New Simply Rets Page' ),
-            'view_item'     => __( 'View Simply Rets Page' ),
-            'all_items'     => __( 'All Simply Rets Pages' ),
-            'search_items'  => __( 'Search Simply Rets Pages' ),
+            'name'          => __( 'SimplyRETS' ),
+            'singular_name' => __( 'SimplyRETS Page' ),
+            'add_new_item'  => __( 'New SimplyRETS Page' ),
+            'edit_item'     => __( 'Edit SimplyRETS Page' ),
+            'new_item'      => __( 'New SimplyRETS Page' ),
+            'view_item'     => __( 'View SimplyRETS Page' ),
+            'all_items'     => __( 'All SimplyRETS Pages' ),
+            'search_items'  => __( 'Search SimplyRETS Pages' ),
         );
         $args = array(
             'public'          => true,
             'has_archive'     => false,
             'labels'          => $labels,
-            'description'     => 'Simply Rets property listings pages',
+            'description'     => 'SimplyRETS property listings pages',
             'query_var'       => true,
             'menu_positions'  => '15',
             'capability_type' => 'page',
@@ -242,6 +242,9 @@ class SimplyRetsCustomPostPages {
 
         // on page load, if there are any filters already saved, load them,
         // show the input field, and remove the option from the dropdown
+        if( !is_array($sr_filters) ) {
+            $sr_filters = array();
+        }
         foreach( $sr_filters as $key=>$val ) {
             if ( $val != '' ) {
                 ?>
@@ -263,7 +266,11 @@ class SimplyRetsCustomPostPages {
     }
 
     public static function postFilterMetaBoxSave( $post_id ) {
-        $current_nonce = $_POST['sr_meta_box_nonce'];
+        if( isset($_POST['sr_meta_box_nonce']) ) {
+            $current_nonce = $_POST['sr_meta_box_nonce'];
+        } else {
+            $current_nonce = NULL;
+        }
         $is_autosaving = wp_is_post_autosave( $post_id );
         $is_revision   = wp_is_post_revision( $post_id );
         $valid_nonce   = ( isset( $current_nonce ) && wp_verify_nonce( $current_nonce, basename( __FILE__ ) ) ) ? 'true' : 'false';
@@ -272,7 +279,11 @@ class SimplyRetsCustomPostPages {
             return;
         }
 
-        $sr_filters = $_POST['sr_filters'];
+        if( isset($_POST['sr_filters']) ) {
+            $sr_filters = $_POST['sr_filters'];
+        } else {
+            $sr_filters = NULL;
+        }
         update_post_meta( $post_id, 'sr_filters', $sr_filters );
     }
 
@@ -304,7 +315,11 @@ class SimplyRetsCustomPostPages {
     }
 
     public static function postTemplateMetaBoxSave( $post_id ) {
-        $current_nonce = $_POST['sr_template_meta_nonce'];
+        if( isset($_POST['sr_template_meta_nonce']) ) {
+            $current_nonce = $_POST['sr_template_meta_nonce'];
+        } else {
+            $current_nonce = NULL;
+        }
         $is_autosaving = wp_is_post_autosave( $post_id );
         $is_revision   = wp_is_post_revision( $post_id );
         $valid_nonce   = ( isset( $current_nonce ) && wp_verify_nonce( $current_nonce, basename( __FILE__ ) ) ) ? 'true' : 'false';
@@ -313,7 +328,11 @@ class SimplyRetsCustomPostPages {
             return;
         }
 
-        $sr_page_template = $_POST['sr_page_template'];
+        if( isset($_POST['sr_page_template']) ) {
+            $sr_page_template = $_POST['sr_page_template'];
+        } else {
+            $sr_page_template = NULL;
+        }
         update_post_meta( $post_id, 'sr_page_template', $sr_page_template );
     }
 
@@ -354,7 +373,7 @@ class SimplyRetsCustomPostPages {
         return $new_template;
     }
 
-    public static function srPostDefaultContent( $content, $post ) {
+    public static function srPostDefaultContent( $content ) {
         require_once( plugin_dir_path(__FILE__) . 'simply-rets-api-helper.php' );
         $post_type = get_post_type();
         $page_name = get_query_var( 'sr-listings' );
@@ -381,13 +400,14 @@ class SimplyRetsCustomPostPages {
 
             // these should correlate with what the api expects as filters
             $listing_params = array(
-                "type"     => $type,
+                "type"      => $type,
+                "q"         => $keywords,
                 "minbeds"   => $minbeds,
                 "maxbeds"   => $maxbeds,
                 "minbaths"  => $minbaths,
                 "maxbaths"  => $maxbaths,
-                "minprice" => $minprice,
-                "maxprice" => $maxprice
+                "minprice"  => $minprice,
+                "maxprice"  => $maxprice
             );
 
             $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );

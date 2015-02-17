@@ -56,7 +56,7 @@ class SimplyRetsShortcodes {
 
             <div class="sr-minmax-filters">
               <div class="sr-search-field" id="sr-search-keywords">
-                <input name="sr_keywords" type="text" placeholder="Keywords" />
+                <input name="sr_keywords" type="text" placeholder="Subdivision, Zipcode, MLS Area, MLS Number, or Market Area" />
               </div>
 
               <div class="sr-search-field" id="sr-search-ptype">
@@ -71,28 +71,28 @@ class SimplyRetsShortcodes {
 
             <div class="sr-minmax-filters">
               <div class="sr-search-field" id="sr-search-minprice">
-                <input name="sr_minprice" type="text" placeholder="Min Price.." />
+                <input name="sr_minprice" type="number" placeholder="Min Price.." />
               </div>
               <div class="sr-search-field" id="sr-search-maxprice">
-                <input name="sr_maxprice" type="text" placeholder="Max Price.." />
+                <input name="sr_maxprice" type="number" placeholder="Max Price.." />
               </div>
 
               <div class="sr-search-field" id="sr-search-minbeds">
-                <input name="sr_minbeds" type="text" placeholder="Min Beds.." />
+                <input name="sr_minbeds" type="number" placeholder="Min Beds.." />
               </div>
               <div class="sr-search-field" id="sr-search-maxbeds">
-                <input name="sr_maxbeds" type="text" placeholder="Max Beds.." />
+                <input name="sr_maxbeds" type="number" placeholder="Max Beds.." />
               </div>
 
               <div class="sr-search-field" id="sr-search-minbaths">
-                <input name="sr_minbaths" type="text" placeholder="Min Baths.." />
+                <input name="sr_minbaths" type="number" placeholder="Min Baths.." />
               </div>
               <div class="sr-search-field" id="sr-search-maxbaths">
-                <input name="sr_maxbaths" type="text" placeholder="Max Baths.." />
+                <input name="sr_maxbaths" type="number" placeholder="Max Baths.." />
               </div>
             </div>
 
-            <input class="submit real-btn" type="submit" value="Seach Properties">
+            <input class="submit button btn" type="submit" value="Search Properties">
 
           </form>
         </div>
