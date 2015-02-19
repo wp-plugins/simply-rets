@@ -12,9 +12,7 @@ Show your Real Estate listings on your Wordpress site. SimplyRETS provides a ver
 
 == Description ==
 
-# SimplyRETS
-
-## Getting Started
+= Getting Started =
 
 The SimplyRETS plugin allows you to display and search your real
 estate listings directly on your Wordpress site. The setup takes
@@ -27,14 +25,14 @@ To get your listings showing through the plugin, you need 3 things:
 * Activate a RETS feed with your MLS (we'll help here, and if you already have a feed - even better!)
 * Start getting LIVE listings right on your site!
 
-## Using the Test Listings
+= Using the Test Listings =
 
 To use the free test listings to try out the plugin, all you need to
 do is install it and start creating pages!  The test credentials are
 already saved in the plugin when you install it, so you can spend more
 time making and awesome real estate website.
 
-## Features Documentation
+= Features & Documentation =
 
 To use the available widgets, and shortcodes - start by reading over [the
 Documentation section](https://wordpress.org/plugins/simply-rets/other-notes) of
@@ -46,7 +44,7 @@ point for customizing some of the features.
 As always, you can email [support@simplyrets.com](mailto:support@simplyrets.com) for any
 questions you can't find an answer to!
 
-## How it Works
+= How it Works =
 
 The SimplyRETS plugin generates accurate and correct HTML and does
 *not* use iframes or ever take your visitors away from your site -
@@ -88,8 +86,6 @@ spend more time actually selling!
 
 
 == Installation ==
-
-You can simply install this plugin a couple of different ways:
 
 = Wordpress Plugin Directory =
 
