@@ -34,11 +34,11 @@ time making and awesome real estate website.
 
 = Features & Documentation =
 
-To use the available widgets, and shortcodes - start by reading over [the
-Documentation section](https://wordpress.org/plugins/simply-rets/other-notes) of
+To use the available widgets, and shortcodes - start by reading over
+[the Documentation section](https://wordpress.org/plugins/simply-rets/other_notes/) of
 the Wordpress ReadMe.
 
-The [Github ReadMe] (https://github.com/rbros/simplyretswp) also provides a good starting
+The [Github ReadMe](https://github.com/rbros/simplyretswp) also provides a good starting
 point for customizing some of the features.
 
 As always, you can email [support@simplyrets.com](mailto:support@simplyrets.com) for any
@@ -269,6 +269,89 @@ clients need to be updated. See the changelog for a complete list.
 There is much more documentation for both the SimplyRETS API, and the
 SimplyRETS Wordpress plugin. You can dig into all of that on the
 Documentation page of the SimplyRETS site: [SimplyRETS Documentation](https://docs.simplyrets.com)
+
+= Plugin Shortcodes, Widgets, and more! =
+
+
+= Using the Test MLS Listings =
+
+- Navigate to the SimplyRETS Settings page in your Wordpress dashboard
+  (Settings -> SimplyRETS)
+- To use the test listings, insert the testing API Keys (Username:
+  simplyrets Password: simplyrets)
+
+Note, the test listings are activated automatically - so if you're
+installing the plugin for the first time, you don't need to do the
+above steps.
+
+
+= SimplyRETS Pages =
+
+You can create SimplyRETS pages to show your listings.
+
+- To create a new page, navigate to SimplyRETS -> Add New Page in your
+  Wordpress dashboard. (by default these pages will show all of your
+  listings - 25 per page)
+- You can add filters to this page by editing the post and using the
+  "Filter Results on this Page" options
+- You can add filters for price, agent, min/max bed, min/max bath and
+  more.
+- SimplyRETS Pages give you the ability to choose from your theme's
+  available templates.
+
+
+= SimplyRETS Shortcodes =
+
+To add dynamic MLS listings to any post or page on your site, there are shortcodes available
+
+- Single Listing Shortcode - [sr_residential mlsid="76933149"] (be
+  sure to enter the mlsid for the property you want to show)
+- Multiple Listing Shortcode - [sr_residential] - This will by default
+  show 25 listings. You can narrow this down by using filters here as
+  well, i.e. - [sr_residential minbath="2"] or [sr_residential minprice="500000"]
+- Search Form Shortcode - [sr_search_form] - You can use the shortcode
+  on any page or post to embed an MLS search.
+
+
+= SimplyRETS Widgets =
+
+The plugin also comes with several widgets you may find helpful to use in your sidebar or footer
+
+- Featured Listing Widget - This takes one listing MLS id, and will
+  embed the property in a widget with a link to the details page of
+  that property
+- Random Listing Widget - This is similar to the Featured Listing
+  Widget, but takes multiple MLS Id's. On each page load, it will show
+  one of the listings provided.
+- Search Form Widget - The search form widget allows you to add an MLS
+  search in the sidebar or footer of your site.
+
+
+= Custom CSS for the SimplyRETS plugin =
+
+If you need to add any custom Styling to the plugin to make it look
+more like your theme - you can add custom CSS using our Style
+Guide. The Style Guide will show you which classes and Id's to use to
+add styling to the plugin. You can find it here:
+https://docs.simplyrets.com/simply-rets-client.html
+
+
+= More Information =
+
+You can find more information about this plugin in a couple of
+places. Visit the SimplyRETS Wordpress.org page for installation and
+set up instructions. The SimplyRETS readme on Github has more
+information about each of the features. And you can always email us a
+support@simplyrets for any other questions.
+
+
+= Need a new feature? =
+
+If you have a suggestion for a new feature to add to the plugin, let
+us know! We're always looking to expand our plugin to give you what
+you need to make the best possible site. Email support@simplyrets.com
+if you have an idea for a great new feature!
+
 
 = For Developers =
 
