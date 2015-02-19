@@ -1,13 +1,13 @@
 === Plugin Name ===
-Contributors: CodyReichert, ReichertBrothers
-Tags: rets, idx, real estate listings, real estate, listings, rets listings, simply rets, simple rets, rets feed, simple idx, idx feed
+Contributors: SimplyRETS, CodyReichert
+Tags: rets, idx, real estate listings, real estate, listings, rets listings, simply rets, simple rets, rets feed, simple idx, idx feed, mls listings
 Requires at least: 3.0.1
 Tested up to: 4.1.1
 Stable tag: 1.1.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Show your Real Estate listings on your Wordpress site. SimplyRETS provides a very simple set up and full control over your listings.
+Show your Real Estate listings on your Wordpress site. SimplyRETS provides a simple set up and full control over your listings.
 
 
 == Description ==
