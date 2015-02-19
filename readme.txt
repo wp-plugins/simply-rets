@@ -1,30 +1,52 @@
 === Plugin Name ===
-Contributors: SimplyRETS, CodyReichert
+Contributors: CodyReichert, ReichertBrothers
 Tags: rets, idx, real estate listings, real estate, listings, rets listings, simply rets, simple rets, rets feed, simple idx, idx feed, mls listings
 Requires at least: 3.0.1
 Tested up to: 4.1.1
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Show your Real Estate listings on your Wordpress site. SimplyRETS provides a simple set up and full control over your listings.
+Show your Real Estate listings on your Wordpress site. SimplyRETS provides a very simple set up and full control over your listings.
 
 
 == Description ==
 
-The SimplyRETS plugin allows you integrate your live Real Estate
-listings directly on your Wordpress site with little to no hassle.
-This plugin requires a plan with [SimplyRETS](https://simplyrets.com),
-but demo listing data is provided for you to test out and make sure
-the plugin does what you're looking for. Getting started with the
-SimplyRETS plugin is as easy as installing it and creating a new
-page!
+# SimplyRETS
 
-In order to get your properties on your site, there are only a
-couple of things you need:
+## Getting Started
 
-* You must be a current member of an MLS provider. This is who we get your properties from (which we'll take care of).
-* You must have an active plan with [SimplyRETS](https://simplyrets.com). We offer a wide variety of plans to accommodate most situations. Visit our website for me details on pricing and how to get started.
+The SimplyRETS plugin allows you to display and search your real
+estate listings directly on your Wordpress site. The setup takes
+less than 5 minutes, and we even supply public listings for you
+to test with. We never use iframes, so you get all the SEO benefits!
+
+To get your listings showing through the plugin, you need 3 things:
+
+* [Create an account with SimplyRETS](https://simplyrets.com/account)
+* Activate a RETS feed with your MLS (we'll help here, and if you already have a feed - even better!)
+* Start getting LIVE listings right on your site!
+
+## Using the Test Listings
+
+To use the free test listings to try out the plugin, all you need to
+do is install it and start creating pages!  The test credentials are
+already saved in the plugin when you install it, so you can spend more
+time making and awesome real estate website.
+
+## Features Documentation
+
+To use the available widgets, and shortcodes - start by reading over [the
+Documentation section](https://wordpress.org/plugins/simply-rets/other-notes) of
+the Wordpress ReadMe.
+
+The [Github ReadMe] (https://github.com/rbros/simplyretswp) also provides a good starting
+point for customizing some of the features.
+
+As always, you can email [support@simplyrets.com](mailto:support@simplyrets.com) for any
+questions you can't find an answer to!
+
+## How it Works
 
 The SimplyRETS plugin generates accurate and correct HTML and does
 *not* use iframes or ever take your visitors away from your site -
@@ -86,16 +108,6 @@ install!
 1. Download the `.zip` file and extract it into your sites `wp-content/plugins` directory
 
 1. Be sure to extract it into a directory called `wp-content/plugins/simply-rets/`.
-
-= Activating =
-
-Once you have the plugin installed via one of the methods above, you
-can go to the Plugins page of your Wordpress site and click `activate`
-on SimplyRETS. Once successfully activated, you can start using the
-demo listings, or enter your SimplyRETS credentials to start getting
-your listings!
-
-
 
 
 
@@ -196,6 +208,9 @@ listing sidebar widget.
 
 == Changelog ==
 
+= 1.1.5 =
+* Automatically save test credentials when plugin is activated to make it easier to get started.
+
 = 1.1.4 =
 * Add option for hiding Listing Date and Listing Last Modified fields
 
@@ -271,4 +286,4 @@ application than worrying about how to get the correct listings from
 your MLS provider.
 
 Visit the SimplyRETS website for more details and a full list of
-services: [SimplyRETS Features](https://simplyrets.com)
+services: [SimplyRETS Features](https://simplyrets.com/services)
