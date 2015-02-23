@@ -18,12 +18,12 @@ jQuery(function() {
   var maxBathFilterInput  = jQuery('#sr-max-bath-span');
   var agentFilterInput    = jQuery('#sr-listing-agent-span');
   var listingTypeSelect   = jQuery('#sr-listing-type-span');
+  var limitInput          = jQuery('#sr-limit-span');
 
   var filterArea      = jQuery('.current-filters');
   var filterSelectBox = jQuery('#sr-filter-select');
   filterSelectBox.change(function() {
 
-    console.log('filter select box changed');
     var filterVal = filterSelectBox.val();
 
     // when a new filter is selected, show the input box and remove the
@@ -69,16 +69,18 @@ jQuery(function() {
           listingTypeSelect.show();
           jQuery(this).find("option:selected").remove();
           break;
+      case "Amount of listings":
+          filterArea.append(limitInput);
+          limitInput.show();
+          jQuery(this).find("option:selected").remove();
+          break;
       default:
           break;
     }
 
-    console.log(filterVal);
-
   });
 
   jQuery('.sr-remove-filter').click(function() {
-      console.log('remove button cliked');
       jQuery(this).parent('.sr-filter-input').hide();
       jQuery(this).prev('input').val("");
   });
