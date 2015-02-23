@@ -84,10 +84,11 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.1.5 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.2.0 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
+            // init curl and set options
             $ch = curl_init();
             $curl_info = curl_version();
             $curl_version = $curl_info['version'];
@@ -96,9 +97,29 @@ class SimplyRetsApiHelper {
             curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
             curl_setopt( $ch, CURLOPT_USERAGENT, $ua_string . " cURL/{$curl_version}" );
             curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+            curl_setopt( $ch, CURLOPT_HEADER, true );
+
+            // make request to api
             $request = curl_exec( $ch );
-            $response_array = json_decode( $request );
+
+            // get header size to parse out of response
+            $header_size = curl_getinfo( $ch, CURLINFO_HEADER_SIZE );
+
+            // separate header/body out of response
+            $header      = substr( $request, 0, $header_size );
+            $body        = substr( $request, $header_size );
+
+            $pag_links = SimplyRetsApiHelper::srPaginationParser($header);
+
+            // decode the reponse body
+            $response_array = json_decode( $body );
+
+            $srResponse = array();
+            $srResponse['pagination'] = $pag_links;
+            $srResponse['response'] = $response_array;;
+            // close curl connection
             curl_close( $ch );
+            return $srResponse;
 
         } else {
             $options = array(
@@ -110,6 +131,7 @@ class SimplyRetsApiHelper {
             $context = stream_context_create( $options );
             $request = file_get_contents( $url, false, $context );
             $response_array = json_decode( $request );
+            return $response_array;
         }
 
         if( $response_array === FALSE || empty($response_array) ) {
@@ -128,6 +150,34 @@ class SimplyRetsApiHelper {
     }
 
 
+    public static function srPaginationParser( $linkHeader ) {
+        // get link val from header
+        $pag_links = array();
+        $name = 'Link';
+        preg_match('/^Link: ([^\r\n]*)[\r\n]*$/m', $linkHeader, $matches);
+        unset($matches[0]);
+        foreach( $matches as $key => $val ) {
+            $parts = explode( ",", $val );
+            foreach( $parts as $key => $part ) {
+                if( strpos( $part, 'rel="prev"' ) == true ) {
+                    $part = trim( $part );
+                    preg_match( '/^<(.*)>/', $part, $prevLink );
+                    // $prevLink = $part;
+                }
+                if( strpos( $part, 'rel="next"' ) == true ) {
+                    $part = trim( $part );
+                    preg_match( '/^<(.*)>/', $part, $nextLink );
+                }
+            }
+        }
+        //  $nextLink = explode(",", $matches[1]);
+        $prev_link = $prevLink[1];
+        $next_link = $nextLink[1];
+        $pag_links['prev'] = $prev_link;
+        $pag_links['next'] = $next_link;
+        return $pag_links;
+    }
+
 
     public static function simplyRetsClientCss() {
         wp_register_style( 'simply-rets-client-css', plugins_url( 'css/simply-rets-client.css', __FILE__ ) );
@@ -143,6 +193,23 @@ class SimplyRetsApiHelper {
     }
 
 
+    /**
+     * Experimental function not implemented yet. Should be
+     * built out to show/hide fields based on whether or not
+     * the specific listing has them.
+     */
+    public static function srDetailsTable($val, $name) {
+        if( $val == "" ) {
+            $val = "";
+        } else {
+            $val = <<<HTML
+                <tr>
+                  <td>$name</td>
+                  <td>$val</td>
+HTML;
+        }
+        return $val;
+    }
 
 
     public static function srResidentialDetailsGenerator( $listing ) {
@@ -150,6 +217,7 @@ class SimplyRetsApiHelper {
         $cont = "";
         $contact_page = get_option( 'sr_contact_page' );
 
+        $listing = $listing['response'];
         /*
          * check for an error code in the array first, if it's
          * there, return it - no need to do anything else.
@@ -161,33 +229,37 @@ class SimplyRetsApiHelper {
             return $err;
         }
         if( array_key_exists( "error", $listing ) ) {
-            $error = $listing['error'];
+            $error = $listing->error;
             $cont .= "<hr><p>{$error}</p>";
             return $cont;
         }
 
         // stories
-        $stories = $listing->property->stories;
-        if( $stories == "" ) {
-            $stories = "";
-        } else {
-            $stories = <<<HTML
-                <tr>
-                  <td>Stories</td>
-                  <td>$stories</td></tr>
-HTML;
-        }
+        $listing_stories = $listing->property->stories;
+        $stories = SimplyRetsApiHelper::srDetailsTable($listing_stories, "Stories");
         // fireplaces
-        $fireplaces = $listing->property->fireplaces;
-        if( $fireplaces == "" ) {
-            $fireplaces = "";
-        } else {
-            $fireplaces = <<<HTML
-                <tr>
-                  <td>Fireplaces</td>
-                  <td>$fireplaces</td></tr>
-HTML;
-        }
+        $listing_fireplaces = $listing->property->fireplaces;
+        $fireplaces = SimplyRetsApiHelper::srDetailsTable($listing_fireplaces, "Fireplaces");
+        // Long
+        $listing_longitude = $listing->geo->lng;
+        $geo_longitude = SimplyRetsApiHelper::srDetailsTable($listing_longitude, "Longitude");
+        // Long
+        $listing_lat = $listing->geo->lat;
+        $geo_latitude = SimplyRetsApiHelper::srDetailsTable($listing_lat, "Latitude");
+        // County
+        $listing_county = $listing->geo->county;
+        $geo_county = SimplyRetsApiHelper::srDetailsTable($listing_county, "County");
+        // mls area
+        $listing_mlsarea = $listing->mls->area;
+        $mls_area = SimplyRetsApiHelper::srDetailsTable($listing_mlsarea, "MLS Area");
+        // tax data
+        $listing_taxdata = $listing->tax->id;
+        $tax_data = SimplyRetsApiHelper::srDetailsTable($listing_taxdata, "Tax Data");
+        // school zone data
+        $listing_schooldata = $listing->school->district;
+        $school_data = SimplyRetsApiHelper::srDetailsTable($listing_schooldata, "School Data");
+
+
 
         // lot size
         $lotSize          = $listing->property->lotSize;
@@ -195,6 +267,12 @@ HTML;
             $lot_sqft = 'n/a';
         } else {
             $lot_sqft    = number_format( $lotSize );
+        }
+        $area        = $listing->property->area; // might be empty
+        if( $area == 0 ) {
+            $area = 'n/a';
+        } else {
+            $area = number_format( $area );
         }
 
 
@@ -206,7 +284,8 @@ HTML;
             $main_photo = $photos[0];
             $photo_counter = 0;
             foreach( $photos as $photo ) {
-                $photo_markup .= "<input class=\"sr-slider-input\" type=\"radio\" name=\"slide_switch\" id=\"id$photo_counter\" value=\"$photo\"/>";
+                $photo_markup .=
+                    "<input class=\"sr-slider-input\" type=\"radio\" name=\"slide_switch\" id=\"id$photo_counter\" value=\"$photo\"/>";
                 $photo_markup .= "<label for='id$photo_counter'>";
                 $photo_markup .= "  <img src='$photo' width='100'>";
                 $photo_markup .= "</label>";
@@ -229,76 +308,6 @@ HTML;
                   <td>$geo_directions</td></tr>
 HTML;
         }
-        // Long
-        $geo_longitude = $listing->geo->lng;
-        if( $geo_longitude == "" ) {
-            $geo_longitude  = "";
-        } else {
-            $geo_longitude = <<<HTML
-                <tr>
-                  <td>Longitude</td>
-                  <td>$geo_longitude</td></tr>
-HTML;
-        }
-        // Long
-        $geo_latitude = $listing->geo->lat;
-        if( $geo_latitude == "" ) {
-            $geo_latitude  = "";
-        } else {
-            $geo_latitude = <<<HTML
-                <tr>
-                  <td>Latitude</td>
-                  <td>$geo_latitude</td></tr>
-HTML;
-        }
-        // Long
-        $geo_county= $listing->geo->county;
-        if( $geo_county == "" ) {
-            $geo_county   = "";
-        } else {
-            $geo_county = <<<HTML
-                <tr>
-                  <td>Latitude</td>
-                  <td>$geo_county</td></tr>
-HTML;
-        }
-
-
-        // school zone data
-        $school_data = $listing->school->district;
-        if( $school_data == "" ) {
-            $school_data = "";
-        } else {
-            $school_data  = <<<HTML
-                <tr>
-                  <td>School Zone</td>
-                  <td>$school_data</td></tr>
-HTML;
-        }
-
-        // mls area
-        $mls_area       = $listing->mls->area;
-        if( $mls_area == "" ) {
-            $mls_area = "";
-        } else {
-            $mls_area = <<<HTML
-                <tr>
-                  <td>MLS Area</td>
-                  <td>$mls_area</td></tr>
-HTML;
-        }
-
-        // tax data
-        $tax_data    = $listing->tax->id;
-        if( $tax_data == "" ) {
-            $tax_data = "";
-        } else {
-            $tax_data = <<<HTML
-                <tr>
-                  <td>Tax Data</td>
-                  <td>$tax_data</td></tr>
-HTML;
-        }
 
         // list date and listing last modified
         if( get_option('sr_show_listingmeta') ) {
@@ -311,26 +320,13 @@ HTML;
         if( $show_listing_meta == true ) {
             $list_date           = $listing->listDate;
             $list_date_formatted = date("M j, Y", strtotime($list_date));
-            $listing_modified    = $listing->modified; // TODO: format date
-            $date_modified       = date("M j, Y", strtotime($listing_modified));
-            $list_date_markup = <<<HTML
-                <tr>
-                  <td>Listing date</td>
-                  <td>$list_date_formatted</td></tr>
-                <tr>
-                  <td>Listing last modified</td>
-                  <td>$date_modified</td></tr>
-HTML;
-            $days_on_market = $listing->mls->daysOnMarket;
-            if( $days_on_market == "" ) {
-                $days_on_market = "";
-            } else {
-                $days_on_market = <<<HTML
-                    <tr>
-                      <td>Days on Market</td>
-                      <td>$days_on_market</td></tr>
-HTML;
-            }
+            $date_formatted_markup = SimplyRetsApiHelper::srDetailsTable($list_date_formatted, "Listing Date");
+            $listing_modified = $listing->modified; // TODO: format date
+            $date_modified    = date("M j, Y", strtotime($listing_modified));
+            $date_modified_markup = SimplyRetsApiHelper::srDetailsTable($date_modified, "Listing Last Modified");
+            $list_date_markup .= $date_formatted_markup . $date_modified_markup;
+            $listing_days_on_market = $listing->mls->daysOnMarket;
+            $days_on_market = SimplyRetsApiHelper::srDetailsTable($listing_days_on_market, "Days on Market" );
         }
 
         // Amenities
@@ -389,7 +385,7 @@ HTML;
                 <h3>$bathsFull <small>Baths</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-size">
-                <h3>$lot_sqft <small>SqFt</small></h3>
+                <h3>$area <small>SqFt</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-status">
                 <h3>$mls_status</h3>
@@ -516,12 +512,27 @@ HTML;
         // var_dump( $response );
         // echo '</pre></code>';
 
+        $pagination = $response['pagination'];
+        $response = $response['response'];
+
+        if( $pagination['prev'] !== null && !empty($pagination['prev'] ) ) {
+            $previous = $pagination['prev'];
+            $siteUrl = get_home_url() . '/?sr-listings=sr-search&';
+            $prev = str_replace( 'https://api.simplyrets.com/properties?', $siteUrl, $previous );
+        }
+
+        if( $pagination['next'] !== null && !empty($pagination['next'] ) ) {
+            $nextLink = $pagination['next'];
+            $siteUrl = get_home_url() . '/?sr-listings=sr-search&';
+            $next = str_replace( 'https://api.simplyrets.com/properties?', $siteUrl, $nextLink );
+        }
+
         /*
          * check for an error code in the array first, if it's
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
-        if( $response == "NULL" ) {
+        if( $response == NULL ) {
             $err = "SimplyRETS could not complete this search. Please check your " .
                 "credentials and try again.";
             return $err;
@@ -553,10 +564,16 @@ HTML;
             if( $lotSize == 0 ) {
                 $lot_sqft = 'n/a';
             } else {
-                $lot_sqft    = number_format( $lotSize );
+                $lot_sqft = number_format( $lotSize );
             }
-            $subdivision = $listing->property->subdivision;
+            $area        = $listing->property->area; // might be empty
+            if( $area == 0 ) {
+                $area = 'n/a';
+            } else {
+                $area = number_format( $area );
+            }
 
+            $subdivision = $listing->property->subdivision;
             // year built
             $yearBuilt = $listing->property->yearBuilt;
             if( $yearBuilt == '' ) {
@@ -617,7 +634,7 @@ HTML;
                       <span>$bathsFull Full Baths</span>
                     </li>
                     <li>
-                      <span>$lot_sqft SqFt</span>
+                      <span>$area SqFt</span>
                     </li>
                     <li>
                       <span>Built in $yearBuilt</span>
@@ -643,6 +660,7 @@ HTML;
 HTML;
         }
 
+        $cont .= "<hr><p class='sr-pagination'><a href='{$prev}'>Prev</a> | <a href='{$next}'>Next</a></p>";
         $cont .= "<br><p><small><i>This information is believed to be accurate, but without any warranty.</i></small></p>";
         return $cont;
     }
@@ -661,6 +679,7 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
+        $response = $response['response'];
         if( $response == NULL ) {
             $err = "SimplyRETS could not complete this search. Please check your " .
                 "credentials and try again.";

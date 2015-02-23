@@ -37,6 +37,15 @@ class SimplyRetsCustomPostPages {
         flush_rewrite_rules();
     }
 
+    public static function srPluginSettingsLink( $links ) {
+        $settings_link =
+            '<a href="' . admin_url( 'options-general.php?page=simplyrets-admin.php' ) . '">'
+            . __( 'Settings', 'SimplyRETS' )
+            . '</a>';
+        array_unshift( $links, $settings_link );
+        return $links;
+    }
+
     // Create our Custom Post Type
     public static function srRegisterPostType() {
         $labels = array(
@@ -70,6 +79,8 @@ class SimplyRetsCustomPostPages {
         $vars[] = "listing_id";
         $vars[] = "listing_title";
         $vars[] = "listing_price";
+        $vars[] = "limit";
+        $vars[] = "offset";
         // sr prefixes are for the search form
         $vars[] = "sr_minprice";
         $vars[] = "sr_maxprice";
@@ -79,6 +90,7 @@ class SimplyRetsCustomPostPages {
         $vars[] = "sr_maxbaths";
         $vars[] = "sr_keywords";
         $vars[] = "sr_ptype";
+        $vars[] = "sr_agent";
         $vars[] = "sr-listings";
         return $vars;
     }
@@ -129,6 +141,7 @@ class SimplyRetsCustomPostPages {
         $max_bath_filter  = "";
         $agent_id_filter  = "";
         $listing_type_filter  = "";
+        $limit_filter  = "";
 
         $sr_filters = get_post_meta( $post->ID, 'sr_filters', true);
 
@@ -140,15 +153,16 @@ class SimplyRetsCustomPostPages {
               <?php _e( 'Add new Filter' ); ?>
             </span>
             <select name="sr-filter-select" id="sr-filter-select">
-                <option> -- Select a Filter --                   </option>
-                <option val="minprice-option">  Minimum Price     </option>
-                <option val="maxprice-option">  Maximum Price     </option>
-                <option val="minbeds-option">   Minimum Beds      </option>
-                <option val="maxbeds-option">   Maximum Beds      </option>
-                <option val="minbaths-option">  Minimum Bathrooms </option>
-                <option val="maxbaths-option">  Maximum Bathrooms </option>
-                <option val="agentid-option">   Listing Agent     </option>
-                <option val="type-option">      Listing Type      </option>
+                <option> -- Select a Filter -- </option>
+                <option val="minprice-option">  Minimum Price      </option>
+                <option val="maxprice-option">  Maximum Price      </option>
+                <option val="minbeds-option">   Minimum Beds       </option>
+                <option val="maxbeds-option">   Maximum Beds       </option>
+                <option val="minbaths-option">  Minimum Bathrooms  </option>
+                <option val="maxbaths-option">  Maximum Bathrooms  </option>
+                <option val="agentid-option">   Listing Agent      </option>
+                <option val="type-option">      Listing Type       </option>
+                <option val="limit-option">     Amount of listings </option>
             </select>
             <hr>
         </div>
@@ -158,9 +172,9 @@ class SimplyRetsCustomPostPages {
           <!-- Min Price Filter -->
           <div class="sr-filter-input" id="sr-min-price-span">
             <label for="sr-min-price-input">
-              <?php _e( 'Minimum Price', 'sr-textdomain' ) ?>
+              Minimum Price:
             </label>
-            <input id="minprice" type="text" name="sr_filters[minprice]"
+            <input id="minprice" type="number" name="sr_filters[minprice]"
               value="<?php print_r( $min_price_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -170,7 +184,7 @@ class SimplyRetsCustomPostPages {
             <label for="sr-max-price-input">
               Maximum Price:
             </label>
-            <input id="maxprice" type="text" name="sr_filters[maxprice]"
+            <input id="maxprice" type="number" name="sr_filters[maxprice]"
               value="<?php print_r( $max_price_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -180,7 +194,7 @@ class SimplyRetsCustomPostPages {
             <label for="sr-min-bed-input">
               Minimum Bedrooms:
             </label>
-            <input id="minbeds" type="text" name="sr_filters[minbeds]"
+            <input id="minbeds" type="number" name="sr_filters[minbeds]"
               value="<?php print_r( $min_bed_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -190,7 +204,7 @@ class SimplyRetsCustomPostPages {
             <label for="sr-max-bed-input">
               Maximum Bedrooms:
             </label>
-            <input id="maxbeds" type="text" name="sr_filters[maxbeds]"
+            <input id="maxbeds" type="number" name="sr_filters[maxbeds]"
               value="<?php print_r( $max_bed_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -200,7 +214,7 @@ class SimplyRetsCustomPostPages {
             <label for="sr-min-bath-input">
               Minimum Bathrooms:
             </label>
-            <input id="minbaths" type="text" name="sr_filters[minbaths]"
+            <input id="minbaths" type="number" name="sr_filters[minbaths]"
               value="<?php print_r( $min_bath_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -210,7 +224,7 @@ class SimplyRetsCustomPostPages {
             <label for="sr-max-bath-input">
               Maximum Bathrooms:
             </label>
-            <input id="maxbaths" type="text" name="sr_filters[maxbaths]"
+            <input id="maxbaths" type="number" name="sr_filters[maxbaths]"
               value="<?php print_r( $max_bath_filisting_typelter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -218,9 +232,9 @@ class SimplyRetsCustomPostPages {
           <!-- Agent ID Filter -->
           <div class="sr-filter-input" id="sr-listing-agent-span">
             <label for="sr-listing-agent-input">
-              Listing Agent MLS Id:
+              Listing Agent ID:
             </label>
-            <input id="agentid" type="text" name="sr_filters[agentid]"
+            <input id="agent" type="number" name="sr_filters[agent]"
               value="<?php print_r( $agent_id_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
@@ -232,6 +246,16 @@ class SimplyRetsCustomPostPages {
             </label>
             <input id="type" type="text" name="sr_filters[type]"
               value="<?php print_r( $listing_type_filter ); ?>"/>
+            <span class="sr-remove-filter">Remove Filter</span>
+          </div>
+
+          <!-- Response Limit Filter -->
+          <div class="sr-filter-input" id="sr-limit-span">
+            <label for="sr-limit-input">
+              Amount of listings to show:
+            </label>
+            <input id="limit" type="text" name="sr_filters[limit]"
+              value="<?php print_r( $limit_filter ); ?>"/>
             <span class="sr-remove-filter">Remove Filter</span>
           </div>
 
@@ -257,7 +281,6 @@ class SimplyRetsCustomPostPages {
                     var parent = key.parent();
 
                     key.val(val); // set value to $key
-                    console.log(key.val());
                     filterArea.append(parent); //append div to filters area
                     parent.show(); //display: block the div since it has a value
 
@@ -390,30 +413,41 @@ class SimplyRetsCustomPostPages {
         }
 
         if ( $page_name == 'sr-search' ) {
-            $minbeds   = get_query_var( 'sr_minbeds',   '' );
-            $maxbeds   = get_query_var( 'sr_maxbeds',   '' );
-            $minbaths  = get_query_var( 'sr_minbaths',  '' );
-            $maxbaths  = get_query_var( 'sr_maxbaths',  '' );
+            $minbeds  = get_query_var( 'sr_minbeds',   '' );
+            $maxbeds  = get_query_var( 'sr_maxbeds',   '' );
+            $minbaths = get_query_var( 'sr_minbaths',  '' );
+            $maxbaths = get_query_var( 'sr_maxbaths',  '' );
             $minprice = get_query_var( 'sr_minprice', '' );
             $maxprice = get_query_var( 'sr_maxprice', '' );
-            // TODO: make sure api helper supports these
             $keywords = get_query_var( 'sr_keywords', '' );
             $type     = get_query_var( 'sr_ptype', '' );
+            $agent    = get_query_var( 'sr_agent', '' );
+            $limit    = get_query_var( 'limit', '' );
+            $offset   = get_query_var( 'offset', '' );
 
             // these should correlate with what the api expects as filters
             $listing_params = array(
                 "type"      => $type,
                 "q"         => $keywords,
+                "agent"     => $agent,
                 "minbeds"   => $minbeds,
                 "maxbeds"   => $maxbeds,
                 "minbaths"  => $minbaths,
                 "maxbaths"  => $maxbaths,
                 "minprice"  => $minprice,
-                "maxprice"  => $maxprice
+                "maxprice"  => $maxprice,
+                "limit"     => $limit,
+                "offset"    => $offset
             );
 
+            foreach( $listing_params as $param => $val ) {
+                if( !$val == '' ) {
+                    $filters_string .= ' ' . $param . '=\'' . $val . '\'';
+                }
+            }
+
             $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
-            $content .= do_shortcode( '[sr_search_form]' );
+            $content .= do_shortcode( "[sr_search_form  $filters_string]");
             $content .= $listings_content;
 
             return $content;

@@ -1,9 +1,9 @@
 === Plugin Name ===
-Contributors: CodyReichert, ReichertBrothers
-Tags: rets, idx, real estate listings, real estate, listings, rets listings, simply rets, simple rets, rets feed, simple idx, idx feed, mls listings
+Contributors: SimplyRETS
+Tags: rets, idx, real estate listings, real estate, listings, rets listings, simply rets, simple rets, rets feed, simple idx, idx feed
 Requires at least: 3.0.1
 Tested up to: 4.1.1
-Stable tag: 1.1.5
+Stable tag: 1.2.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -12,39 +12,19 @@ Show your Real Estate listings on your Wordpress site. SimplyRETS provides a ver
 
 == Description ==
 
-= Getting Started =
+The SimplyRETS plugin allows you integrate your live Real Estate
+listings directly on your Wordpress site with little to no hassle.
+This plugin requires a plan with [SimplyRETS](https://simplyrets.com),
+but demo listing data is provided for you to test out and make sure
+the plugin does what you're looking for. Getting started with the
+SimplyRETS plugin is as easy as installing it and creating a new
+page!
 
-The SimplyRETS plugin allows you to display and search your real
-estate listings directly on your Wordpress site. The setup takes
-less than 5 minutes, and we even supply public listings for you
-to test with. We never use iframes, so you get all the SEO benefits!
+In order to get your properties on your site, there are only a
+couple of things you need:
 
-To get your listings showing through the plugin, you need 3 things:
-
-* [Create an account with SimplyRETS](https://simplyrets.com/account)
-* Activate a RETS feed with your MLS (we'll help here, and if you already have a feed - even better!)
-* Start getting LIVE listings right on your site!
-
-= Using the Test Listings =
-
-To use the free test listings to try out the plugin, all you need to
-do is install it and start creating pages!  The test credentials are
-already saved in the plugin when you install it, so you can spend more
-time making and awesome real estate website.
-
-= Features & Documentation =
-
-To use the available widgets, and shortcodes - start by reading over
-[the Documentation section](https://wordpress.org/plugins/simply-rets/other_notes/) of
-the Wordpress ReadMe.
-
-The [Github ReadMe](https://github.com/rbros/simplyretswp) also provides a good starting
-point for customizing some of the features.
-
-As always, you can email [support@simplyrets.com](mailto:support@simplyrets.com) for any
-questions you can't find an answer to!
-
-= How it Works =
+* You must be a current member of an MLS provider. This is who we get your properties from (which we'll take care of).
+* You must have an active plan with [SimplyRETS](https://simplyrets.com). We offer a wide variety of plans to accommodate most situations. Visit our website for me details on pricing and how to get started.
 
 The SimplyRETS plugin generates accurate and correct HTML and does
 *not* use iframes or ever take your visitors away from your site -
@@ -87,6 +67,8 @@ spend more time actually selling!
 
 == Installation ==
 
+You can simply install this plugin a couple of different ways:
+
 = Wordpress Plugin Directory =
 
 1. If you usually install plugins via the Wordpress Dashboard 'Add
@@ -104,6 +86,16 @@ install!
 1. Download the `.zip` file and extract it into your sites `wp-content/plugins` directory
 
 1. Be sure to extract it into a directory called `wp-content/plugins/simply-rets/`.
+
+= Activating =
+
+Once you have the plugin installed via one of the methods above, you
+can go to the Plugins page of your Wordpress site and click `activate`
+on SimplyRETS. Once successfully activated, you can start using the
+demo listings, or enter your SimplyRETS credentials to start getting
+your listings!
+
+
 
 
 
@@ -204,6 +196,14 @@ listing sidebar widget.
 
 == Changelog ==
 
+= 1.2.0 =
+* Add graphical shortcode/page builder got creating listing shortcodes
+* Add support for listing limit and pagination for multiple pages of listings
+* Add support for agent ID query parameter in shortcode & custom post type
+* Add more styling and clean up text in admin settings panel
+* better error handling
+* other fixes and improvements 
+
 = 1.1.5 =
 * Automatically save test credentials when plugin is activated to make it easier to get started.
 
@@ -250,6 +250,10 @@ listing sidebar widget.
 
 == Upgrade Notice ==
 
+= 1.2.0 =
+* This update should fully support backwards compatiblity, but if you notice problem
+update to the latest version.
+
 = 1.1.3 =
 * This update fixes a visible warning on new SimplyRETS post pages
 
@@ -270,89 +274,6 @@ There is much more documentation for both the SimplyRETS API, and the
 SimplyRETS Wordpress plugin. You can dig into all of that on the
 Documentation page of the SimplyRETS site: [SimplyRETS Documentation](https://docs.simplyrets.com)
 
-= Plugin Shortcodes, Widgets, and more! =
-
-
-= Using the Test MLS Listings =
-
-- Navigate to the SimplyRETS Settings page in your Wordpress dashboard
-  (Settings -> SimplyRETS)
-- To use the test listings, insert the testing API Keys (Username:
-  simplyrets Password: simplyrets)
-
-Note, the test listings are activated automatically - so if you're
-installing the plugin for the first time, you don't need to do the
-above steps.
-
-
-= SimplyRETS Pages =
-
-You can create SimplyRETS pages to show your listings.
-
-- To create a new page, navigate to SimplyRETS -> Add New Page in your
-  Wordpress dashboard. (by default these pages will show all of your
-  listings - 25 per page)
-- You can add filters to this page by editing the post and using the
-  "Filter Results on this Page" options
-- You can add filters for price, agent, min/max bed, min/max bath and
-  more.
-- SimplyRETS Pages give you the ability to choose from your theme's
-  available templates.
-
-
-= SimplyRETS Shortcodes =
-
-To add dynamic MLS listings to any post or page on your site, there are shortcodes available
-
-- Single Listing Shortcode - [sr_residential mlsid="76933149"] (be
-  sure to enter the mlsid for the property you want to show)
-- Multiple Listing Shortcode - [sr_residential] - This will by default
-  show 25 listings. You can narrow this down by using filters here as
-  well, i.e. - [sr_residential minbath="2"] or [sr_residential minprice="500000"]
-- Search Form Shortcode - [sr_search_form] - You can use the shortcode
-  on any page or post to embed an MLS search.
-
-
-= SimplyRETS Widgets =
-
-The plugin also comes with several widgets you may find helpful to use in your sidebar or footer
-
-- Featured Listing Widget - This takes one listing MLS id, and will
-  embed the property in a widget with a link to the details page of
-  that property
-- Random Listing Widget - This is similar to the Featured Listing
-  Widget, but takes multiple MLS Id's. On each page load, it will show
-  one of the listings provided.
-- Search Form Widget - The search form widget allows you to add an MLS
-  search in the sidebar or footer of your site.
-
-
-= Custom CSS for the SimplyRETS plugin =
-
-If you need to add any custom Styling to the plugin to make it look
-more like your theme - you can add custom CSS using our Style
-Guide. The Style Guide will show you which classes and Id's to use to
-add styling to the plugin. You can find it here:
-https://docs.simplyrets.com/simply-rets-client.html
-
-
-= More Information =
-
-You can find more information about this plugin in a couple of
-places. Visit the SimplyRETS Wordpress.org page for installation and
-set up instructions. The SimplyRETS readme on Github has more
-information about each of the features. And you can always email us a
-support@simplyrets for any other questions.
-
-
-= Need a new feature? =
-
-If you have a suggestion for a new feature to add to the plugin, let
-us know! We're always looking to expand our plugin to give you what
-you need to make the best possible site. Email support@simplyrets.com
-if you have an idea for a great new feature!
-
-
 = For Developers =
 
 If you're interested in building your own Plugin or Application,
@@ -365,4 +286,4 @@ application than worrying about how to get the correct listings from
 your MLS provider.
 
 Visit the SimplyRETS website for more details and a full list of
-services: [SimplyRETS Features](https://simplyrets.com/services)
+services: [SimplyRETS Features](https://simplyrets.com)
