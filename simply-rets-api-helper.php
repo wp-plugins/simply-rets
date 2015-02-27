@@ -84,7 +84,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.2.0 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.3.0 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -180,16 +180,21 @@ class SimplyRetsApiHelper {
 
 
     public static function simplyRetsClientCss() {
-        wp_register_style( 'simply-rets-client-css', plugins_url( 'css/simply-rets-client.css', __FILE__ ) );
+        wp_register_style( 'simply-rets-client-css', plugins_url( 'assets/css/simply-rets-client.css', __FILE__ ) );
         wp_enqueue_style( 'simply-rets-client-css' );
     }
 
     public static function simplyRetsClientJs() {
         wp_register_script( 'simply-rets-client-js',
-                            plugins_url( 'js/simply-rets-client.js', __FILE__ ),
+                            plugins_url( 'assets/js/simply-rets-client.js', __FILE__ ),
                             array('jquery')
         );
         wp_enqueue_script( 'simply-rets-client-js' );
+        wp_register_script( 'simply-rets-galleria-js',
+                            plugins_url( 'assets/galleria/galleria-1.4.2.min.js', __FILE__ ),
+                            array('jquery')
+        );
+        wp_enqueue_script( 'simply-rets-galleria-js' );
     }
 
 
@@ -258,6 +263,12 @@ HTML;
         // school zone data
         $listing_schooldata = $listing->school->district;
         $school_data = SimplyRetsApiHelper::srDetailsTable($listing_schooldata, "School Data");
+        // roof
+        $listing_roof = $listing->property->roof;
+        $roof = SimplyRetsApiHelper::srDetailsTable($listing_roof, "Roof");
+        // subdivision
+        $listing_subdivision = $listing->property->subdivision;
+        $subdivision = SimplyRetsApiHelper::srDetailsTable($listing_subdivision, "Subdivision");
 
 
 
@@ -277,20 +288,41 @@ HTML;
 
 
         // photos data (and set up slideshow markup)
+        /**
+         * We build the markup for our image gallery here. If classic is set explicity, we use
+         * the classic gallery - otherwise we default to the fancy gallery
+         */
         $photos = $listing->photos;
+        $dummy = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
         if(empty($photos)) {
-             $main_photo = plugins_url( 'img/defprop.jpg', __FILE__ );
+             $main_photo = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
+             $photo_gallery.= "  <img src='$main_photo'>";
         } else {
-            $main_photo = $photos[0];
-            $photo_counter = 0;
-            foreach( $photos as $photo ) {
-                $photo_markup .=
-                    "<input class=\"sr-slider-input\" type=\"radio\" name=\"slide_switch\" id=\"id$photo_counter\" value=\"$photo\"/>";
-                $photo_markup .= "<label for='id$photo_counter'>";
-                $photo_markup .= "  <img src='$photo' width='100'>";
-                $photo_markup .= "</label>";
-                $photo_counter++;
+            $photo_gallery = '';
+            if(get_option('sr_listing_gallery') == 'classic') {
+                $main_photo = $photos[0];
+                $photo_counter = 0;
+                $more_photos = '<span id="sr-toggle-gallery">See more photos</span> |';
+                $photo_gallery .= "<div class='sr-slider'><img class='sr-slider-img-act' src='$main_photo'>";
+                foreach( $photos as $photo ) {
+                    $photo_gallery.=
+                        "<input class='sr-slider-input' type='radio' name='slide_switch' id='id$photo_counter' value='$photo' />";
+                    $photo_gallery.= "<label for='id$photo_counter'>";
+                    $photo_gallery.= "  <img src='$photo' width='100'>";
+                    $photo_gallery.= "</label>";
+                    $photo_counter++;
+                }
+
+            } else {
+                $photo_gallery = '<div class="sr-gallery" id="sr-fancy-gallery">';
+                $more_photos = '';
+                foreach( $photos as $photo ) {
+                    $photo_gallery .= "<img src='$photo' data-title='$address'>";
+                }
+                $photo_gallery .= <<<HTML
+HTML;
             }
+            $photo_gallery .= "</div>";
         }
 
         // geographic data
@@ -318,12 +350,15 @@ HTML;
 
         $list_date_markup = '';
         if( $show_listing_meta == true ) {
+
             $list_date           = $listing->listDate;
             $list_date_formatted = date("M j, Y", strtotime($list_date));
             $date_formatted_markup = SimplyRetsApiHelper::srDetailsTable($list_date_formatted, "Listing Date");
+
             $listing_modified = $listing->modified; // TODO: format date
             $date_modified    = date("M j, Y", strtotime($listing_modified));
             $date_modified_markup = SimplyRetsApiHelper::srDetailsTable($date_modified, "Listing Last Modified");
+
             $list_date_markup .= $date_formatted_markup . $date_modified_markup;
             $listing_days_on_market = $listing->mls->daysOnMarket;
             $days_on_market = SimplyRetsApiHelper::srDetailsTable($listing_days_on_market, "Days on Market" );
@@ -337,8 +372,6 @@ HTML;
         $heating          = $listing->property->heating;
         $exteriorFeatures = $listing->property->exteriorFeatures;
         $yearBuilt        = $listing->property->yearBuilt;
-        $subdivision      = $listing->property->subdivision;
-        $roof             = $listing->property->roof;
         // listing meta information
         $disclaimer  = $listing->disclaimer;
         $listing_uid = $listing->mlsId;
@@ -351,7 +384,25 @@ HTML;
         $listing_office   = $listing->office->name;
         $listing_price    = $listing->listPrice;
         $listing_USD      = '$' . number_format( $listing_price );
-        $listing_remarks  = $listing->remarks;
+
+
+        if( get_option('sr_show_listing_remarks') ) {
+            $show_remarks = false;
+        } else {
+            $show_remarks = true;
+        }
+
+        $remarks_markup = '';
+        $remarks_table  = '';
+        if( $show_remarks == true ) {
+            $remarks = $listing->remarks;
+            $remarks_markup = <<<HTML
+            <div class="sr-remarks-details">
+              <p>$remarks</p>
+            </div>
+HTML;
+            $days_on_market = SimplyRetsApiHelper::srDetailsTable($remarks, "Remarks" );
+        }
 
         // agent data
         $listing_agent_id    = $listing->agent->id;
@@ -363,20 +414,34 @@ HTML;
 
         // mls information
         $mls_status     = $listing->mls->status;
+        $galleria_theme = plugins_url('assets/galleria/themes/classic/galleria.classic.min.js', __FILE__);
 
         // listing markup
         $cont .= <<<HTML
           <div class="sr-details" style="text-align:left;">
             <p class="sr-details-links" style="clear:both;">
-              <span id="sr-toggle-gallery">See more photos</span> |
+              $more_photos
               <span id="sr-listing-contact">
                 <a href="$contact_page">Contact us about this listing</a>
               </span>
             </p>
-            <div class="sr-slider">
-              <img class="sr-slider-img-act" src="$main_photo">
-              $photo_markup
-            </div>
+            $photo_gallery
+            <script>
+              if(document.getElementById('sr-fancy-gallery')) {
+                  Galleria.loadTheme('$galleria_theme');
+                  Galleria.configure({
+                      height: 475,
+                      width:  "90%",
+                      showinfo: false,
+                      dummy: "$dummy",
+                      lightbox: true,
+                      imageCrop: true,
+                      imageMargin: 0,
+                      fullscreenDoubleTap: true
+                  });
+                  Galleria.run('.sr-gallery');
+              }
+            </script>
             <div class="sr-primary-details">
               <div class="sr-detail" id="sr-primary-details-beds">
                 <h3>$bedrooms <small>Beds</small></h3>
@@ -391,10 +456,7 @@ HTML;
                 <h3>$mls_status</h3>
               </div>
             </div>
-            <div class="sr-remarks-details">
-              <p>$listing_remarks</p>
-            </div>
-
+            $remarks_markup
             <table style="width:100%;">
               <thead>
                 <tr>
@@ -429,12 +491,8 @@ HTML;
                   <td>Lot Size</td>
                   <td>$lot_sqft SqFt</td></tr>
                 $fireplaces
-                <tr>
-                  <td>Subdivision</td>
-                  <td>$subdivision</td></tr>
-                <tr>
-                  <td>Roof</td>
-                  <td>$roof</td></tr>
+                $subdivision
+                $roof
               </tbody>
                 $geo_directions
                 $geo_county
@@ -482,9 +540,7 @@ HTML;
                 <tr>
                   <td>Listing Agent</td>
                   <td>$listing_agent_name</td></tr>
-                <tr>
-                  <td>Remarks</td>
-                  <td>$listing_remarks</td></tr>
+                $remarks_table
               </tbody>
               <thead>
                 <tr>
@@ -604,7 +660,7 @@ HTML;
             // listing photos
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
+                $listingPhotos[0] = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
             }
             $main_photo = trim($listingPhotos[0]);
 
@@ -712,7 +768,7 @@ HTML;
             // widget photo
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
-                $listingPhotos[0] = plugins_url( 'img/defprop.jpg', __FILE__ );
+                $listingPhotos[0] = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
             }
             $main_photo = $listingPhotos[0];
 

@@ -25,11 +25,13 @@ class SrAdminSettings {
       register_setting('sr_admin_settings', 'sr_api_key');
       register_setting('sr_admin_settings', 'sr_contact_page');
       register_setting('sr_admin_settings', 'sr_show_listingmeta');
+      register_setting('sr_admin_settings', 'sr_show_listing_remarks');
+      register_setting('sr_admin_settings', 'sr_listing_gallery');
   }
   
   function sr_admin_page() {
       global $wpdb;
-      $logo_path = plugin_dir_url(__FILE__) . 'img/logo_button.png';
+      $logo_path = plugin_dir_url(__FILE__) . 'assets/img/logo_button.png';
       ?>
       <div class="wrap sr-admin-wrap">
         <img class="sr-admin-logo" src="<?php echo $logo_path; ?>">
@@ -67,6 +69,7 @@ class SrAdminSettings {
           <hr>
           <div class="sr-admin-settings">
             <h2>Single Listing Page Settings</h2>
+            <h3>Contact Capture</h3>
             <table>
               <tbody>
                 <tr>
@@ -74,14 +77,12 @@ class SrAdminSettings {
                     <strong>Contact Page Link</strong>
                   </td>
                   <td>
-                    <br>
-                    <input type="text" name="sr_contact_page" value="<?php echo esc_attr( get_option('sr_contact_page') ); ?>" />
-                    <br>
-                    <i>Example: http://yoursite.com/contact </i>
+                    <input placeholder="www.example.com/contact" type="text" name="sr_contact_page" value="<?php echo esc_attr( get_option('sr_contact_page') ); ?>" />
                   </td>
                 </tr>
               </tbody>
             </table>
+            <h3>Show/Hide Fields</h3>
             <table>
               <tbody>
                 <tr>
@@ -92,6 +93,44 @@ class SrAdminSettings {
                         . checked(1, get_option('sr_show_listingmeta'), false) . '/>'
                       ?>
                       Hide 'Listing Date' and 'Listing Last Modified' for search results and property details?
+                    </label>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <label>
+                      <?php echo
+                        '<input type="checkbox" id="sr_show_listing_remarks" name="sr_show_listing_remarks" value="1" '
+                        . checked(1, get_option('sr_show_listing_remarks'), false) . '/>'
+                      ?>
+                      Hide 'Listing Remarks' (description) field from property details?
+                    </label>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <h3>Image Gallery Settings</h3>
+            <table>
+              <tbody>
+                <tr>
+                  <td>
+                    <label>
+                      <?php echo
+                        '<input type="radio" id="sr_listing_gallery" name="sr_listing_gallery" value="fancy" '
+                        . checked('fancy', get_option('sr_listing_gallery'), false) . '/>'
+                      ?>
+                      Fancy Gallery
+                    </label>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <label>
+                      <?php echo
+                        '<input type="radio" id="sr_listing_gallery" name="sr_listing_gallery" value="classic" '
+                        . checked('classic', get_option('sr_listing_gallery'), false) . '/>'
+                      ?>
+                      Classic Gallery
                     </label>
                   </td>
                 </tr>

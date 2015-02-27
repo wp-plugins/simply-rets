@@ -30,6 +30,7 @@ class SimplyRetsCustomPostPages {
         SimplyRetsCustomPostPages::srRegisterPostType();
         add_option( 'sr_api_name', 'simplyrets' );
         add_option( 'sr_api_key', 'simplyrets' );
+        add_option( 'sr_listing_gallery', 'fancy' );
         flush_rewrite_rules();
     }
 
@@ -119,14 +120,14 @@ class SimplyRetsCustomPostPages {
 
     public static function postFilterMetaBoxJs() {
         wp_register_script( 'simply-rets-admin-js'
-                            , plugins_url( 'js/simply-rets-admin.js', __FILE__ )
+                            , plugins_url( 'assets/js/simply-rets-admin.js', __FILE__ )
                             , array( 'jquery' )
         );
         wp_enqueue_script( 'simply-rets-admin-js' );
     }
 
     public static function postFilterMetaBoxCss() {
-        wp_register_style( 'simply-rets-admin-css', plugins_url( 'css/simply-rets-admin.css', __FILE__ ) );
+        wp_register_style( 'simply-rets-admin-css', plugins_url( 'assets/css/simply-rets-admin.css', __FILE__ ) );
         wp_enqueue_style( 'simply-rets-admin-css' );
 
     }
@@ -485,9 +486,9 @@ class SimplyRetsCustomPostPages {
         if( $wp_query->query['sr-listings'] == "sr-single" ) {
             $post_id    = get_query_var( 'listing_id' );
             $post_addr  = get_query_var( 'listing_title', 'none' );
-            $post_price = get_query_var( 'listing_price', '' );
+            $post_price = get_query_var( 'listing_price', '0' );
 
-            $listing_USD = '$' . number_format( $post_price );
+            $listing_USD = $post_price == '' ? '$0' : '$' . number_format( $post_price );
             $title_normalize = "background-color:transparent;padding:0px;";
             $post_title = "{$post_addr} - <span style='{$title_normalize}'><i>{$listing_USD}</i></span>";
 
