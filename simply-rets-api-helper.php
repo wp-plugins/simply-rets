@@ -84,7 +84,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.3.1 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.3.2 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -307,7 +307,7 @@ HTML;
         $listing_subdivision = $listing->property->subdivision;
         $subdivision = SimplyRetsApiHelper::srDetailsTable($listing_subdivision, "Subdivision");
         // unit
-        $listing_unit = $listing->property->unit;
+        $listing_unit = $listing->address->unit;
         $unit = SimplyRetsApiHelper::srDetailsTable($listing_unit, "Unit");
         // mls information
         $listing_mls_status     = $listing->mls->status;
@@ -346,7 +346,7 @@ HTML;
         if( $lotSize == 0 ) {
             $lot_sqft = 'n/a';
         } else {
-            $lot_sqft = number_format( $lotSize );
+            $lot_sqft = $lotSize;
         }
         $area = $listing->property->area; // might be empty
         if( $area == 0 ) {
@@ -522,7 +522,7 @@ HTML;
                 <h3>$listing_bathsFull <small>Baths</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-size">
-                <h3>$area <small>SqFt</small></h3>
+                <h3>$area <small class="sr-listing-area-sqft">SqFt</small></h3>
               </div>
               <div class="sr-detail" id="sr-primary-details-status">
                 <h3>$listing_mls_status</h3>
@@ -543,7 +543,7 @@ HTML;
                 $style
                 <tr>
                   <td>Lot Size</td>
-                  <td>$lot_sqft SqFt</td></tr>
+                  <td>$lot_sqft <span class="sr-listing-lotsize-sqft">SqFt</span></td></tr>
                 $stories
                 $interiorFeatures
                 $exteriorFeatures
@@ -671,13 +671,7 @@ HTML;
             if( $bathsFull == null || $bathsFull == "" ) {
                 $bathsFull = 0;
             }
-            $lotSize     = $listing->property->lotSize; // might be empty
-            if( $lotSize == 0 ) {
-                $lot_sqft = 'n/a';
-            } else {
-                $lot_sqft = number_format( $lotSize );
-            }
-            $area        = $listing->property->area; // might be empty
+            $area = $listing->property->area; // might be empty
             if( $area == 0 ) {
                 $area = 'n/a';
             } else {
@@ -721,17 +715,19 @@ HTML;
 
             $listing_link = get_home_url() .
                 "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
+            $link = str_replace( ' ', '%20', $listing_link );
+            $link = str_replace( '#', '%23', $link );
 
             // append markup for this listing to the content
             $cont .= <<<HTML
               <hr>
               <div class="sr-listing">
-                <a href="$listing_link">
+                <a href="$link">
                   <div class="sr-photo" style="background-image:url('$main_photo');">
                   </div>
                 </a>
                 <div class="sr-primary-data">
-                  <a href="$listing_link">
+                  <a href="$link">
                     <h4>$address
                     <span id="sr-price"><i>$listing_USD</i></span></h4>
                   </a>
@@ -745,7 +741,7 @@ HTML;
                       <span>$bathsFull Full Baths</span>
                     </li>
                     <li>
-                      <span>$area SqFt</span>
+                      <span>$area <span class="sr-listing-area-sqft">SqFt</span></span>
                     </li>
                     <li>
                       <span>Built in $yearBuilt</span>
@@ -765,7 +761,7 @@ HTML;
                   </ul>
                 </div>
                 <div style="clear:both;">
-                  <a href="$listing_link">More details</a>
+                  <a href="$link">More details</a>
                 </div>
               </div>
 HTML;
@@ -836,16 +832,18 @@ HTML;
             // create link to listing
             $listing_link = get_home_url()
                 . "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
+            $link = str_replace( ' ', '%20', $listing_link );
+            $link = str_replace( '#', '%23', $link );
 
             // append markup for this listing to the content
             $cont .= <<<HTML
               <div class="sr-listing-wdgt">
-                <a href="$listing_link">
+                <a href="$link">
                   <h5>$address
                     <small> - $listing_USD </small>
                   </h5>
                 </a>
-                <a href="$listing_link">
+                <a href="$link">
                   <img src="$main_photo" width="100%" alt="$address">
                 </a>
                 <div class="sr-listing-wdgt-primary">
@@ -858,7 +856,7 @@ HTML;
                   </div>
                 </div>
                 <div id="sr-listing-wdgt-btn">
-                  <a href="$listing_link">
+                  <a href="$link">
                     <button class="button btn">
                       More about this listing
                     </button>
