@@ -32,7 +32,7 @@ class SimplyRetsShortcodes {
     }
 
     public static function sr_res_add_plugin($plugin_array) {
-        $plugin_array['simplyRets'] = plugins_url( 'js/simply-rets-shortcodes.js', __FILE__ );
+        $plugin_array['simplyRets'] = plugins_url( 'assets/js/simply-rets-shortcodes.js', __FILE__ );
         return $plugin_array;
     }
 
@@ -117,14 +117,14 @@ class SimplyRetsShortcodes {
 
             <div class="sr-minmax-filters">
               <div class="sr-search-field" id="sr-search-keywords">
-                <input name="sr_keywords"
+                <input name="sr_q"
                        type="text"
                        placeholder="Subdivision, Zipcode, MLS Area, MLS Number, or Market Area"
                        value="<?php echo $keywords ?>" />
               </div>
 
               <div class="sr-search-field" id="sr-search-ptype">
-                <select name="sr_ptype">
+                <select name="sr_type">
                   <option value="">Property Type</option>
                   <option <?php echo $type_res; ?> value="res">Residential</option>
                   <option <?php echo $type_cnd; ?> value="cnd">Condo</option>

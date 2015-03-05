@@ -30,6 +30,8 @@ class SimplyRetsCustomPostPages {
         SimplyRetsCustomPostPages::srRegisterPostType();
         add_option( 'sr_api_name', 'simplyrets' );
         add_option( 'sr_api_key', 'simplyrets' );
+        add_option( 'sr_listing_gallery', 'fancy' );
+        add_option( 'sr_show_leadcapture', true );
         flush_rewrite_rules();
     }
 
@@ -79,8 +81,6 @@ class SimplyRetsCustomPostPages {
         $vars[] = "listing_id";
         $vars[] = "listing_title";
         $vars[] = "listing_price";
-        $vars[] = "limit";
-        $vars[] = "offset";
         // sr prefixes are for the search form
         $vars[] = "sr_minprice";
         $vars[] = "sr_maxprice";
@@ -88,9 +88,12 @@ class SimplyRetsCustomPostPages {
         $vars[] = "sr_maxbeds";
         $vars[] = "sr_minbaths";
         $vars[] = "sr_maxbaths";
-        $vars[] = "sr_keywords";
-        $vars[] = "sr_ptype";
+        $vars[] = "sr_q";
+        $vars[] = "sr_type";
         $vars[] = "sr_agent";
+        $vars[] = "limit";
+        $vars[] = "offset";
+        // post type
         $vars[] = "sr-listings";
         return $vars;
     }
@@ -119,14 +122,14 @@ class SimplyRetsCustomPostPages {
 
     public static function postFilterMetaBoxJs() {
         wp_register_script( 'simply-rets-admin-js'
-                            , plugins_url( 'js/simply-rets-admin.js', __FILE__ )
+                            , plugins_url( 'assets/js/simply-rets-admin.js', __FILE__ )
                             , array( 'jquery' )
         );
         wp_enqueue_script( 'simply-rets-admin-js' );
     }
 
     public static function postFilterMetaBoxCss() {
-        wp_register_style( 'simply-rets-admin-css', plugins_url( 'css/simply-rets-admin.css', __FILE__ ) );
+        wp_register_style( 'simply-rets-admin-css', plugins_url( 'assets/css/simply-rets-admin.css', __FILE__ ) );
         wp_enqueue_style( 'simply-rets-admin-css' );
 
     }
@@ -141,7 +144,7 @@ class SimplyRetsCustomPostPages {
         $max_bath_filter  = "";
         $agent_id_filter  = "";
         $listing_type_filter  = "";
-        $limit_filter  = "";
+        $limit_filter     = "";
 
         $sr_filters = get_post_meta( $post->ID, 'sr_filters', true);
 
@@ -413,17 +416,17 @@ class SimplyRetsCustomPostPages {
         }
 
         if ( $page_name == 'sr-search' ) {
-            $minbeds  = get_query_var( 'sr_minbeds',   '' );
-            $maxbeds  = get_query_var( 'sr_maxbeds',   '' );
-            $minbaths = get_query_var( 'sr_minbaths',  '' );
-            $maxbaths = get_query_var( 'sr_maxbaths',  '' );
+            $minbeds  = get_query_var( 'sr_minbeds',  '' );
+            $maxbeds  = get_query_var( 'sr_maxbeds',  '' );
+            $minbaths = get_query_var( 'sr_minbaths', '' );
+            $maxbaths = get_query_var( 'sr_maxbaths', '' );
             $minprice = get_query_var( 'sr_minprice', '' );
             $maxprice = get_query_var( 'sr_maxprice', '' );
-            $keywords = get_query_var( 'sr_keywords', '' );
-            $type     = get_query_var( 'sr_ptype', '' );
-            $agent    = get_query_var( 'sr_agent', '' );
-            $limit    = get_query_var( 'limit', '' );
-            $offset   = get_query_var( 'offset', '' );
+            $keywords = get_query_var( 'sr_q',        '' );
+            $type     = get_query_var( 'sr_type',     '' );
+            $agent    = get_query_var( 'sr_agent',    '' );
+            $limit    = get_query_var( 'limit',       '' );
+            $offset   = get_query_var( 'offset',      '' );
 
             // these should correlate with what the api expects as filters
             $listing_params = array(
@@ -485,9 +488,9 @@ class SimplyRetsCustomPostPages {
         if( $wp_query->query['sr-listings'] == "sr-single" ) {
             $post_id    = get_query_var( 'listing_id' );
             $post_addr  = get_query_var( 'listing_title', 'none' );
-            $post_price = get_query_var( 'listing_price', '' );
+            $post_price = get_query_var( 'listing_price', '0' );
 
-            $listing_USD = '$' . number_format( $post_price );
+            $listing_USD = $post_price == '' ? '$0' : '$' . number_format( $post_price );
             $title_normalize = "background-color:transparent;padding:0px;";
             $post_title = "{$post_addr} - <span style='{$title_normalize}'><i>{$listing_USD}</i></span>";
 
