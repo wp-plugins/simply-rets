@@ -222,11 +222,11 @@ class srSearchFormWidget extends WP_Widget {
             <input type="hidden" name="sr-listings" value="sr-search">
 
             <div class="sr-search-field" id="sr-search-keywords">
-              <input name="sr_keywords" type="text" placeholder="Subdivision, Zipcode, or Keywords" />
+              <input name="sr_q" type="text" placeholder="Subdivision, Zipcode, or Keywords" />
             </div>
 
             <div class="sr-search-field" id="sr-search-ptype">
-              <select name="sr_ptype">
+              <select name="sr_type">
                 <option value="">Property Type</option>
                 <option value="res">Residential</option>
                 <option value="cnd">Condo</option>
