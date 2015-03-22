@@ -2,7 +2,7 @@
 
 /*
  *
- * simply-rets-api-helper.php - Copyright (C) Reichert Brothers 2014
+ * simply-rets-api-helper.php - Copyright (C) 2014-2015 SimplyRETS
  * This file provides a class that has functions for retrieving and parsing
  * data from the remote retsd api.
  *
@@ -67,7 +67,7 @@ class SimplyRetsApiHelper {
             return $request_url;
 
         } else {
-            $request_url = $base_url . '/' . $params;
+            $request_url = $base_url . $params;
             return $request_url;
 
         }
@@ -84,7 +84,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.3.2 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.3.3 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -106,8 +106,8 @@ class SimplyRetsApiHelper {
             $header_size = curl_getinfo( $ch, CURLINFO_HEADER_SIZE );
 
             // separate header/body out of response
-            $header      = substr( $request, 0, $header_size );
-            $body        = substr( $request, $header_size );
+            $header = substr( $request, 0, $header_size );
+            $body   = substr( $request, $header_size );
 
             $pag_links = SimplyRetsApiHelper::srPaginationParser($header);
 
@@ -139,7 +139,7 @@ class SimplyRetsApiHelper {
                 "Sorry, SimplyRETS could not complete this search." .
                 "Please double check that your API credentials are valid " .
                 "and that the search filters you used are correct. If this " .
-                "is a new listing, you may also try back later.";
+                "is a new listing you may also try back later.";
             $response_err = array(
                 "error" => $error
             );
@@ -224,9 +224,8 @@ class SimplyRetsApiHelper {
 
 
     /**
-     * Experimental function not implemented yet. Should be
-     * built out to show/hide fields based on whether or not
-     * the specific listing has them.
+     * Run fields through this function before rendering them on single listing
+     * pages to hide fields that are null.
      */
     public static function srDetailsTable($val, $name) {
         if( $val == "" ) {
@@ -263,6 +262,9 @@ HTML;
             $cont .= "<hr><p>{$error}</p>";
             return $cont;
         }
+
+        // internal unique id
+        $listing_uid = $listing->mlsId;
 
         // bedrooms
         $listing_bedrooms = $listing->property->bedrooms;
@@ -321,9 +323,11 @@ HTML;
         // year built
         $listing_yearBuilt = $listing->property->yearBuilt;
         $yearBuilt = SimplyRetsApiHelper::srDetailsTable($listing_yearBuilt, "Year Built");
-        // mls id
-        $listing_uid = $listing->mlsId;
-        $mlsid = SimplyRetsApiHelper::srDetailsTable($listing_uid, "MLS #");
+
+        // listing id (MLS #)
+        $listing_mlsid = $listing->listingId;
+        $mlsid = SimplyRetsApiHelper::srDetailsTable($listing_mlsid, "MLS #");
+
         // heating
         $listing_heating = $listing->property->heating;
         $heating = SimplyRetsApiHelper::srDetailsTable($listing_heating, "Heating");
@@ -340,7 +344,6 @@ HTML;
         $date_modified_markup = SimplyRetsApiHelper::srDetailsTable($date_modified, "Listing Last Modified");
 
 
-
         // lot size
         $lotSize = $listing->property->lotSize;
         if( $lotSize == 0 ) {
@@ -348,7 +351,8 @@ HTML;
         } else {
             $lot_sqft = $lotSize;
         }
-        $area = $listing->property->area; // might be empty
+        // area
+        $area = $listing->property->area;
         if( $area == 0 ) {
             $area = 'n/a';
         } else {
@@ -402,9 +406,7 @@ HTML;
 
         // geographic data
         $geo_directions = $listing->geo->directions;
-        if( $geo_directions == "" ) {
-            $geo_directions = "";
-        } else {
+        if( !$geo_directions == "" ) {
             $geo_directions = <<<HTML
               <thead>
                 <tr>
@@ -453,7 +455,6 @@ HTML;
         $listing_price    = $listing->listPrice;
         $listing_USD      = '$' . number_format( $listing_price );
 
-
         $remarks_markup = '';
         $remarks_table  = '';
         if( get_option('sr_show_listing_remarks') ) {
@@ -471,11 +472,31 @@ HTML;
 
         if( get_option('sr_show_leadcapture') ) {
             $contact_text = 'Contact us about this listing';
-            $cf_listing = $address . ' ( MLSID #' . $listing_uid . ' )';
+            $cf_listing = $address . ' ( MLS #' . $listing_mlsid . ' )';
             $contact_markup = SimplyRetsApiHelper::srContactFormMarkup($cf_listing);
         } else {
             $contact_text = '';
             $contact_markup = '';
+        }
+
+
+        /**
+         * Check for ListHub Analytics
+         */
+        if( get_option( 'sr_listhub_analytics' ) ) {
+            $lh_analytics = SimplyRetsApiHelper::srListhubAnalytics();
+            if( get_option( 'sr_listhub_analytics_id' ) ) {
+                $metrics_id = get_option( 'sr_listhub_analytics_id' );
+                $lh_send_details = SimplyRetsApiHelper::srListhubSendDetails(
+                    $metrics_id
+                    , true
+                    , $listing_mlsid
+                    , $postal_code
+                );
+                $lh_analytics .= $lh_send_details;
+            }
+        } else {
+            $lh_analytics = '';
         }
 
         // agent data
@@ -599,6 +620,7 @@ HTML;
                 $disclaimer
               </tbody>
             </table>
+            <script>$lh_analytics</script>
           </div>
 HTML;
         $cont .= SimplyRetsApiHelper::srContactFormDeliver();
@@ -787,26 +809,32 @@ HTML;
          * The error code comes from the UrlBuilder function.
         */
         $response = $response['response'];
+        $response_size = sizeof( $response );
+
         if( $response == NULL ) {
             $err = "SimplyRETS could not complete this search. Please check your " .
                 "credentials and try again.";
             return $err;
         }
+
         if( array_key_exists( "error", $response ) ) {
             $error = $response['error'];
             $response_markup = "<hr><p>{$error}</p>";
             return $response_markup;
         }
 
-        $response_size = sizeof( $response );
-        if( $response_size <= 1 ) {
+        if( !array_key_exists("0", $response ) ) {
+            $response = array( $response );
+        }
+
+        if( $response_size < 1 ) {
             $response = array( $response );
         }
 
         foreach ( $response as $listing ) {
-            $listing_uid      = $listing->mlsId;
+            $listing_uid = $listing->mlsId;
             // widget details
-            $bedrooms    = $listing->property->bedrooms;
+            $bedrooms = $listing->property->bedrooms;
             if( $bedrooms == null || $bedrooms == "" ) {
                 $bedrooms = 0;
             }
@@ -928,5 +956,33 @@ HTML;
                 echo 'An unexpected error occurred';
             }
         }
+    }
+
+
+    /**
+     * Listhub Analytics Tracking Code Snippet
+     * We'll insert this in the markup if the admin option
+     * sr_listhub_analytics is true.
+     */
+    public static function srListhubAnalytics() {
+        $analytics = "(function(l,i,s,t,h,u,b){l['ListHubAnalyticsObject']=h;l[h]=l[h]||function(){ "
+            . "(l[h].q=l[h].q||[]).push(arguments)},l[h].d=1*new Date();u=i.createElement(s),"
+            . " b=i.getElementsByTagName(s)[0];u.async=1;u.src=t;b.parentNode.insertBefore(u,b) "
+            . " })(window,document,'script','//tracking.listhub.net/la.min.js','lh'); ";
+        return $analytics;
+    }
+
+
+    public static function srListhubSendDetails( $m, $t, $mlsid, $zip=NULL ) {
+        $metrics_id = $m;
+        $test       = $t;
+        $mlsid      = $mlsid;
+        $zipcode    = $zip;
+
+        $lh_send_details = "lh('init', {provider: '$metrics_id', test: $test}); "
+            . "lh('submit', 'DETAIL_PAGE_VIEWED', {mlsn: '$mlsid', zip: '$zipcode'});";
+
+        return $lh_send_details;
+
     }
 }
