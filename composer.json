@@ -1,0 +1,6 @@
+{
+    "require": {
+        "egeloen/google-map": "1.4.1",
+        "widop/http-adapter": "1.1.0"
+    }
+}

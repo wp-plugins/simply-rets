@@ -1,11 +1,10 @@
 <?php
 
 /*
+ * simply-rets-api-helper.php - Copyright (C) 2014-2015 SimplyRETS, Inc.
  *
- * simply-rets-api-helper.php - Copyright (C) 2014-2015 SimplyRETS
  * This file provides a class that has functions for retrieving and parsing
  * data from the remote retsd api.
- *
  *
 */
 
@@ -13,12 +12,10 @@
 
 class SimplyRetsApiHelper {
 
-
-
-    public static function retrieveRetsListings( $params ) {
+    public static function retrieveRetsListings( $params, $settings = NULL ) {
         $request_url      = SimplyRetsApiHelper::srRequestUrlBuilder( $params );
         $request_response = SimplyRetsApiHelper::srApiRequest( $request_url );
-        $response_markup  = SimplyRetsApiHelper::srResidentialResultsGenerator( $request_response );
+        $response_markup  = SimplyRetsApiHelper::srResidentialResultsGenerator( $request_response, $settings );
 
         return $response_markup;
     }
@@ -84,7 +81,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.3.3 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.3.4 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -117,6 +114,7 @@ class SimplyRetsApiHelper {
             $srResponse = array();
             $srResponse['pagination'] = $pag_links;
             $srResponse['response'] = $response_array;;
+
             // close curl connection
             curl_close( $ch );
             return $srResponse;
@@ -215,11 +213,17 @@ class SimplyRetsApiHelper {
                             array('jquery')
         );
         wp_enqueue_script( 'simply-rets-client-js' );
+
         wp_register_script( 'simply-rets-galleria-js',
                             plugins_url( 'assets/galleria/galleria-1.4.2.min.js', __FILE__ ),
                             array('jquery')
         );
         wp_enqueue_script( 'simply-rets-galleria-js' );
+
+        // wp_register_script( 'simply-rets-google-maps',
+        //                     'http://maps.googleapis.com/maps/api/js?sensor=true'
+        // );
+        // wp_enqueue_script( 'simply-rets-google-maps' );
     }
 
 
@@ -241,6 +245,57 @@ HTML;
     }
 
 
+
+    /**
+     * Build the photo gallery shown on single listing details pages
+     */
+    public static function srDetailsGallery( $photos ) {
+        $photo_gallery = array();
+
+        if( empty($photos) ) {
+             $main_photo = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
+             $markup = "<img src='$main_photo'>";
+             $photo_gallery['markup'] = $markup;
+             $photo_gallery['more']   = '';
+             return $photo_gallery;
+
+        } else {
+            $markup = '';
+            if(get_option('sr_listing_gallery') == 'classic') {
+                $photo_counter = 0;
+                $main_photo = $photos[0];
+                $more = '<span id="sr-toggle-gallery">See more photos</span> |';
+                $markup .= "<div class='sr-slider'><img class='sr-slider-img-act' src='$main_photo'>";
+                foreach( $photos as $photo ) {
+                    $markup .=
+                        "<input class='sr-slider-input' type='radio' name='slide_switch' id='id$photo_counter' value='$photo' />";
+                    $markup .= "<label for='id$photo_counter'>";
+                    $markup .= "  <img src='$photo' width='100'>";
+                    $markup .= "</label>";
+                    $photo_counter++;
+                }
+                $markup .= "</div>";
+                $photo_gallery['markup'] = $markup;
+                $photo_gallery['more'] = $more;
+                return $photo_gallery;
+
+            } else {
+                $more = '';
+                $markup .= '<div class="sr-gallery" id="sr-fancy-gallery">';
+                foreach( $photos as $photo ) {
+                    $markup .= "<img src='$photo' data-title='$address'>";
+                }
+                $markup .= "</div>";
+                $photo_gallery['markup'] = $markup;
+                $photo_gallery['more'] = $more;
+                return $photo_gallery;
+            }
+        }
+        return $photo_gallery;
+
+    }
+
+
     public static function srResidentialDetailsGenerator( $listing ) {
         $br = "<br>";
         $cont = "";
@@ -253,8 +308,7 @@ HTML;
          * The error code comes from the UrlBuilder function.
         */
         if( $listing == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please check your " .
-                "search parameters and try again.";
+            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
             return $err;
         }
         if( array_key_exists( "error", $listing ) ) {
@@ -266,6 +320,9 @@ HTML;
         // internal unique id
         $listing_uid = $listing->mlsId;
 
+        // type
+        $listing_type = $listing->property->type;
+        $type = SimplyRetsApiHelper::srDetailsTable($listing_type, "Property Type");
         // bedrooms
         $listing_bedrooms = $listing->property->bedrooms;
         $bedrooms = SimplyRetsApiHelper::srDetailsTable($listing_bedrooms, "Bedrooms");
@@ -323,11 +380,9 @@ HTML;
         // year built
         $listing_yearBuilt = $listing->property->yearBuilt;
         $yearBuilt = SimplyRetsApiHelper::srDetailsTable($listing_yearBuilt, "Year Built");
-
         // listing id (MLS #)
         $listing_mlsid = $listing->listingId;
         $mlsid = SimplyRetsApiHelper::srDetailsTable($listing_mlsid, "MLS #");
-
         // heating
         $listing_heating = $listing->property->heating;
         $heating = SimplyRetsApiHelper::srDetailsTable($listing_heating, "Heating");
@@ -342,6 +397,16 @@ HTML;
         $listing_modified = $listing->modified; // TODO: format date
         $date_modified    = date("M j, Y", strtotime($listing_modified));
         $date_modified_markup = SimplyRetsApiHelper::srDetailsTable($date_modified, "Listing Last Modified");
+
+        // street address info
+        $postal_code   = $listing->address->postalCode;
+        $country       = $listing->address->country;
+        $address       = $listing->address->full;
+        $city          = $listing->address->city;
+        // Listing Data
+        $listing_office   = $listing->office->name;
+        $listing_price    = $listing->listPrice;
+        $listing_USD      = '$' . number_format( $listing_price );
 
 
         // lot size
@@ -367,42 +432,13 @@ HTML;
         }
 
 
-        /**
-         * We build the markup for our image gallery here. If classic is set explicity, we use
-         * the classic gallery - otherwise we default to the fancy gallery
-         */
-        $photos = $listing->photos;
-        $dummy = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
-        if(empty($photos)) {
-             $main_photo = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
-             $photo_gallery.= "  <img src='$main_photo'>";
-        } else {
-            $photo_gallery = '';
-            if(get_option('sr_listing_gallery') == 'classic') {
-                $main_photo = $photos[0];
-                $photo_counter = 0;
-                $more_photos = '<span id="sr-toggle-gallery">See more photos</span> |';
-                $photo_gallery .= "<div class='sr-slider'><img class='sr-slider-img-act' src='$main_photo'>";
-                foreach( $photos as $photo ) {
-                    $photo_gallery.=
-                        "<input class='sr-slider-input' type='radio' name='slide_switch' id='id$photo_counter' value='$photo' />";
-                    $photo_gallery.= "<label for='id$photo_counter'>";
-                    $photo_gallery.= "  <img src='$photo' width='100'>";
-                    $photo_gallery.= "</label>";
-                    $photo_counter++;
-                }
-
-            } else {
-                $photo_gallery = '<div class="sr-gallery" id="sr-fancy-gallery">';
-                $more_photos = '';
-                foreach( $photos as $photo ) {
-                    $photo_gallery .= "<img src='$photo' data-title='$address'>";
-                }
-                $photo_gallery .= <<<HTML
-HTML;
-            }
-            $photo_gallery .= "</div>";
-        }
+        // photo gallery
+        $photos         = $listing->photos;
+        $photo_gallery  = SimplyRetsApiHelper::srDetailsGallery( $photos );
+        $gallery_markup = $photo_gallery['markup'];
+        $more_photos    = $photo_gallery['more'];
+        $dummy          = plugins_url( 'assets/img/defprop.jpg', __FILE__ );
+        !empty($photos) ? $main_photo = $photos[0] : $main_photo = $dummy;
 
         // geographic data
         $geo_directions = $listing->geo->directions;
@@ -419,11 +455,7 @@ HTML;
         }
 
         // list date and listing last modified
-        if( get_option('sr_show_listingmeta') ) {
-            $show_listing_meta = false;
-        } else {
-            $show_listing_meta = true;
-        }
+        $show_listing_meta = SrUtils::srShowListingMeta();
         $list_date_markup = '';
         $listing_meta_markup = '';
         if( $show_listing_meta == true ) {
@@ -444,16 +476,6 @@ HTML;
 HTML;
 
         }
-
-        // street address info
-        $postal_code   = $listing->address->postalCode;
-        $country       = $listing->address->country;
-        $address       = $listing->address->full;
-        $city          = $listing->address->city;
-        // Listing Data
-        $listing_office   = $listing->office->name;
-        $listing_price    = $listing->listPrice;
-        $listing_USD      = '$' . number_format( $listing_price );
 
         $remarks_markup = '';
         $remarks_table  = '';
@@ -509,26 +531,79 @@ HTML;
 
         $galleria_theme = plugins_url('assets/galleria/themes/classic/galleria.classic.min.js', __FILE__);
 
+        $link = get_home_url() . $_SERVER['REQUEST_URI'];
+        $addrFull = $address . ', ' . $city . ' ' . $zip;
+        if( $listing_lat  && $listing_longitude ) {
+            /**
+             * Google Map for single listing
+             **************************************************/
+            $map       = SrSearchMap::mapWithDefaults();
+            $marker    = SrSearchMap::markerWithDefaults();
+            $iw        = SrSearchMap::infoWindowWithDefaults();
+            $mapHelper = SrSearchMap::srMapHelper();
+            $iwCont    = SrSearchMap::infoWindowMarkup(
+                $link,
+                $main_photo,
+                $address,
+                $listing_USD,
+                $listing_bedrooms,
+                $listing_bathsFull,
+                $listing_mls_status,
+                $listing_mlsid,
+                $listing_type,
+                $area,
+                $listing_style
+            );
+            $iw->setContent($iwCont);
+            $marker->setPosition($listing_lat, $listing_longitude, true);
+            $map->setCenter($listing_lat, $listing_longitude, true);
+            $marker->setInfoWindow($iw);
+            $map->addMarker($marker);
+            $map->setAutoZoom(false);
+            $map->setMapOption('zoom', 12);
+            $mapM = $mapHelper->render($map);
+            $mapMarkup = <<<HTML
+                <hr>
+                <div id="details-map">
+                  <h3>Map View</h3>
+                  $mapM
+                </div>
+HTML;
+            $mapLink = <<<HTML
+              <span style="float:left;">
+                <a href="#details-map">
+                  View on map
+                </a>
+              </span>
+HTML;
+        } else {
+            $mapMarkup = '';
+            $mapLink = '';
+        }
+        /************************************************/
+
+
         // listing markup
         $cont .= <<<HTML
           <div class="sr-details" style="text-align:left;">
             <p class="sr-details-links" style="clear:both;">
+              $mapLink
               $more_photos
               <span id="sr-listing-contact">
                 <a href="#sr-contact-form">$contact_text</a>
               </span>
             </p>
-            $photo_gallery
+            $gallery_markup
             <script>
               if(document.getElementById('sr-fancy-gallery')) {
                   Galleria.loadTheme('$galleria_theme');
                   Galleria.configure({
-                      height: 475,
+                      height: 500,
                       width:  "90%",
                       showinfo: false,
                       dummy: "$dummy",
                       lightbox: true,
-                      imageCrop: true,
+                      imageCrop: false,
                       imageMargin: 0,
                       fullscreenDoubleTap: true
                   });
@@ -620,6 +695,7 @@ HTML;
                 $disclaimer
               </tbody>
             </table>
+            $mapMarkup
             <script>$lh_analytics</script>
           </div>
 HTML;
@@ -629,30 +705,18 @@ HTML;
     }
 
 
-    public static function srResidentialResultsGenerator( $response ) {
-        $br = "<br>";
-        $cont = "";
+    public static function srResidentialResultsGenerator( $response, $settings ) {
+        $br                = "<br>";
+        $cont              = "";
+        $pagination        = $response['pagination'];
+        $response          = $response['response'];
+        $map_position      = get_option('sr_search_map_position');
+        $show_listing_meta = SrUtils::srShowListingMeta();
+        $pag               = SrUtils::buildPaginationLinks( $pagination );
+        $prev_link         = $pag['prev'];
+        $next_link         = $pag['next'];
 
-        // echo '<pre><code>';
-        // var_dump( $response );
-        // echo '</pre></code>';
-
-        $pagination = $response['pagination'];
-        $response = $response['response'];
-
-        if( $pagination['prev'] !== null && !empty($pagination['prev'] ) ) {
-            $previous = $pagination['prev'];
-            $siteUrl = get_home_url() . '/?sr-listings=sr-search&';
-            $prev = str_replace( 'https://api.simplyrets.com/properties?', $siteUrl, $previous );
-            $prev_link = "<a href='{$prev}'>Prev</a>";
-        }
-
-        if( $pagination['next'] !== null && !empty($pagination['next'] ) ) {
-            $nextLink = $pagination['next'];
-            $siteUrl = get_home_url() . '/?sr-listings=sr-search&';
-            $next = str_replace( 'https://api.simplyrets.com/properties?', $siteUrl, $nextLink );
-            $next_link = "| <a href='{$next}'>Next</a>";
-        }
+        isset( $settings['show_map'] ) ? $map_setting = $settings['show_map'] : $map_setting = '';
 
         /*
          * check for an error code in the array first, if it's
@@ -660,8 +724,7 @@ HTML;
          * The error code comes from the UrlBuilder function.
         */
         if( $response == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please check your " .
-                "credentials and try again.";
+            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
             return $err;
         }
         if( array_key_exists( "error", $response ) ) {
@@ -669,65 +732,62 @@ HTML;
             $response_markup = "<hr><p>{$error}</p><br>";
             return $response_markup;
         }
-
         $response_size = sizeof( $response );
         if( !array_key_exists( "0", $response ) ) {
             $response = array( $response );
         }
 
-        if( get_option('sr_show_listingmeta') ) {
-            $show_listing_meta = false;
-        } else {
-            $show_listing_meta = true;
-        }
 
-        foreach ( $response as $listing ) {
-            // id
-            $listing_uid      = $listing->mlsId;
-            // Amenities
-            $bedrooms    = $listing->property->bedrooms;
+        $map       = SrSearchMap::mapWithDefaults();
+        $mapHelper = SrSearchMap::srMapHelper();
+        $map->setAutoZoom(true);
+        $markerCount = 0;
+
+        foreach( $response as $listing ) {
+            $listing_uid        = $listing->mlsId;
+            $mlsid              = $listing->listingId;
+            $propType           = $listing->property->type;
+            $address            = $listing->address->full;
+            $lng                = $listing->geo->lng;
+            $lat                = $listing->geo->lat;
+            $bedrooms           = $listing->property->bedrooms;
+            $bathsFull          = $listing->property->bathsFull;
+            $area               = $listing->property->area; // might be empty
+            $subdivision        = $listing->property->subdivision;
+            $yearBuilt          = $listing->property->yearBuilt;
+            $listing_agent_id   = $listing->agent->id;
+            $listing_agent_name = $listing->agent->firstName;
+            $list_date          = $listing->listDate;
+            $city               = $listing->address->city;
+            $mls_status         = $listing->mls->status;
+            $remarks            = $listing->remarks;
+            $zip                = $listing->address->postalCode;
+            $style              = $listing->property->style;
+            $listing_price      = $listing->listPrice;
+            $listing_USD        = '$' . number_format( $listing_price );
+
+            $addrFull = $address . ', ' . $city . ' ' . $zip;
+
             if( $bedrooms == null || $bedrooms == "" ) {
                 $bedrooms = 0;
             }
-            $bathsFull   = $listing->property->bathsFull;
             if( $bathsFull == null || $bathsFull == "" ) {
                 $bathsFull = 0;
             }
-            $area = $listing->property->area; // might be empty
             if( $area == 0 ) {
                 $area = 'n/a';
             } else {
                 $area = number_format( $area );
             }
-
-            $subdivision = $listing->property->subdivision;
-            // year built
-            $yearBuilt = $listing->property->yearBuilt;
             if( $yearBuilt == '' ) {
                 $yearBuilt = 'n/a';
             }
-
-            // listing data
-            $listing_agent_id    = $listing->agent->id;
-            $listing_agent_name  = $listing->agent->firstName;
-
             // show listing date if setting is on
-            $list_date_markup = '';
             if( $show_listing_meta == true ) {
-                $list_date        = $listing->listDate;
                 $list_date_formatted = date("M j, Y", strtotime($list_date));
-                $list_date_markup = <<<HTML
-                    <li>
-                      <span>Listed on $list_date_formatted</span>
-                    </li>
-HTML;
+                $list_date_markup = SrViews::listDateResults( $list_date_formatted );
             }
 
-            $listing_price    = $listing->listPrice;
-            $listing_USD = '$' . number_format( $listing_price );
-            // street address info
-            $city    = $listing->address->city;
-            $address = $listing->address->full;
             // listing photos
             $listingPhotos = $listing->photos;
             if( empty( $listingPhotos ) ) {
@@ -740,8 +800,37 @@ HTML;
             $link = str_replace( ' ', '%20', $listing_link );
             $link = str_replace( '#', '%23', $link );
 
+
+            /************************************************
+             * Make our map marker for this listing
+             */
+            if( $lat  && $lng ) {
+                $marker = SrSearchMap::markerWithDefaults();
+                $iw     = SrSearchMap::infoWindowWithDefaults();
+                $iwCont = SrSearchMap::infoWindowMarkup(
+                    $link,
+                    $main_photo,
+                    $address,
+                    $listing_USD,
+                    $bedrooms,
+                    $bathsFull,
+                    $mls_status,
+                    $mlsid,
+                    $propType,
+                    $area,
+                    $style
+                );
+                $iw->setContent($iwCont);
+                $marker->setPosition($lat, $lng, true);
+                $marker->setInfoWindow($iw);
+                $map->addMarker($marker);
+                $markerCount = $markerCount + 1;
+            }
+            /************************************************/
+
+
             // append markup for this listing to the content
-            $cont .= <<<HTML
+            $resultsMarkup .= <<<HTML
               <hr>
               <div class="sr-listing">
                 <a href="$link">
@@ -787,21 +876,45 @@ HTML;
                 </div>
               </div>
 HTML;
+
+        }
+
+        $markerCount > 0 ? $mapMarkup = $mapHelper->render($map) : $mapMarkup = '';
+
+        if( $map_setting == 'false' ) {
+            $mapMarkup = '';
+        }
+
+        if( $map_position == 'list_only' )
+        {
+            $cont .= $resultsMarkup;
+        }
+        elseif( $map_position == 'map_only' )
+        {
+            $cont .= $mapMarkup;
+        }
+        elseif( $map_position == 'map_above' )
+        {
+            $cont .= $mapMarkup;
+            $cont .= $resultsMarkup;
+        }
+        elseif( $map_position == 'map_below' )
+        {
+            $cont .= $resultsMarkup;
+            $cont .= '<hr>';
+            $cont .= $mapMarkup;
         }
 
         $cont .= "<hr><p class='sr-pagination'>$prev_link $next_link</p>";
         $cont .= "<br><p><small><i>This information is believed to be accurate, but without any warranty.</i></small></p>";
         return $cont;
+
     }
 
 
     public static function srWidgetListingGenerator( $response ) {
         $br = "<br>";
         $cont = "";
-
-        // echo '<pre><code>';
-        // var_dump( $response );
-        // echo '</pre></code>';
 
         /*
          * check for an error code in the array first, if it's
@@ -812,8 +925,7 @@ HTML;
         $response_size = sizeof( $response );
 
         if( $response == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please check your " .
-                "credentials and try again.";
+            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
             return $err;
         }
 

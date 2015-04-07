@@ -46,14 +46,13 @@ class SimplyRetsShortcodes {
      */
     public function sr_residential_shortcode( $atts ) {
         global $wp_query;
-        ob_start();
 
         if( !empty($atts['mlsid']) ) {
             $mlsid = $atts['mlsid'];
             $listing_params = array(
                 "q" => $mlsid
             );
-            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
+            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params, $atts );
             return $listings_content;
         }
 
@@ -64,7 +63,7 @@ class SimplyRetsShortcodes {
         }
 
         if( !isset( $listing_params['neighborhoods'] ) && !isset( $listing_params['postalcodes'] ) ) {
-            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
+            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params, $atts );
             return $listings_content;
 
         } else {
@@ -103,12 +102,12 @@ class SimplyRetsShortcodes {
             $qs .= $postalcodes_string;
             $qs .= $params_string;
 
-            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $qs );
+            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $qs, $atts );
             return $listings_content;
         }
 
 
-        $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
+        $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params, $atts );
         return $listings_content;
     }
 
