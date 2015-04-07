@@ -32,6 +32,7 @@ class SimplyRetsCustomPostPages {
         add_option( 'sr_api_key', 'simplyrets' );
         add_option( 'sr_listing_gallery', 'fancy' );
         add_option( 'sr_show_leadcapture', true );
+        add_option( 'sr_search_map_position', 'map_above');
         flush_rewrite_rules();
     }
 
@@ -367,7 +368,6 @@ class SimplyRetsCustomPostPages {
 
     // TODO: not sure if this is entirely necessary...at one time it was
     function srClearComments() {
-        return;
         global $post;
         if ( !( is_singular() && ( have_comments() || 'open' == $post->comment_status ) ) ) {
             return;
@@ -375,6 +375,7 @@ class SimplyRetsCustomPostPages {
         if ( $post->post_type == 'sr-listings') {
             return dirname(__FILE__) . '/simply-rets-comments-template.php';
         }
+        return;
     }
 
 
