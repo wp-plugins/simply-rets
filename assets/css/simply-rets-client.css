@@ -71,6 +71,7 @@ of the image, use this class.
     background-repeat: no-repeat;
 }
 
+
 /*
 Primary Data
 ---
@@ -175,6 +176,8 @@ is to change the `margin-left` property to align better in some themes.
     padding-top: 10px;
     width: 70%;
 }
+
+
 /*
 Notice that we also provide you with `sr-data-column` for
 managing the spacing and margin between the two columns of
@@ -489,7 +492,7 @@ Most of these elements also have id's for you to use specifically.
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 #sr-search-keywords {
@@ -629,6 +632,121 @@ elsewhere, this should be a breeze.
 
 .galleria-errors {
     display: none !important;
+}
+
+
+/**
+  * Advanced Search Form
+  */
+.sr-adv-search-wrap {
+    background-color: #f8f8f8;
+    border: solid 1px #e7e7e7;
+    border-radius: 2px;
+    padding: 10px;
+}
+
+.sr-adv-search-part {
+    margin-bottom: 10px;
+}
+
+.sr-adv-search-part label {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sr-adv-search-wrap .sr-minmax-filters {
+    margin-bottom: 0px;
+}
+
+
+/** Single Column */
+.sr-adv-search-part .sr-adv-search-col1 {
+    padding: 5px 10px;
+}
+
+/** Half Column */
+.sr-adv-search-part .sr-adv-search-col2 {
+    display: inline-block;
+    width: 50%;
+    padding: 5px 10px;
+}
+
+.sr-adv-search-part .sr-adv-search-col2 input {
+    display: inline-block;
+    width: 45%;
+}
+
+.sr-adv-search-part .sr-adv-search-col2 select {
+    width: 100%;
+}
+
+/** Quarter Column */
+.sr-adv-search-part .sr-adv-search-col4 {
+    display: inline-block;
+    width: 25%;
+    padding: 5px 10px;
+}
+.sr-adv-search-part .sr-adv-search-col4 select {
+    width: 100%;
+}
+.sr-adv-search-part .sr-adv-search-col4 input {
+    width: 95%;
+}
+
+.sr-adv-search-amenities-wrapper {
+    padding: 5px 10px;
+}
+
+.sr-adv-search-amenities-wrapper-inner {
+    padding: 10px;
+    padding-top: 0px;
+    max-height: 125px;
+    overflow-y: scroll;
+    border: solid 1px #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.sr-adv-search-amenities-wrapper-inner .sr-adv-search-option input {
+    margin-right: 5px;
+}
+
+.sr-adv-search-part li {
+    display: inline-block;
+    width: 25%;
+}
+
+@media screen and (max-width: 360px) {
+    .sr-adv-search-part li {
+        width: 50%;
+    }
+    .sr-adv-search-part #sr-search-keywords {
+        width: 100%;
+    }
+    .sr-adv-search-part #sr-search-ptype {
+        width: 100%;
+        margin-top: 10px;
+    }
+    .sr-adv-search-part #sr-search-ptype select {
+        width: 100%;
+    }
+    /* 1/2 Columns Responsiveness */
+    .sr-adv-search-part .sr-adv-search-col2 {
+        width: 100%;
+    }
+    .sr-adv-search-part .sr-adv-search-col2 input {
+        width: 49%;
+    }
+    /* 1/4 Columns Responsiveness */
+    .sr-adv-search-part .sr-adv-search-col4 {
+        width: 49%;
+    }
+    /* Features checkboxes Responsiveness */
+    .sr-adv-search-part .sr-adv-search-option {
+        width: 50%;
+    }
 }
 
 

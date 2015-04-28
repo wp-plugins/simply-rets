@@ -22,12 +22,21 @@ add_action( 'admin_init',            array( 'SimplyRetsCustomPostPages', 'postFi
 add_action( 'admin_enqueue_scripts', array( 'SimplyRetsCustomPostPages', 'postFilterMetaBoxJs' ) );
 // ^TODO: load css/js only on sr-listings post type pages when admin
 //  and move these into a constructor
+add_action( 'sr_update_adv_search_meta_action', array( 'SimplyRetsApiHelper', 'srUpdateAdvSearchOptions' ) );
 
 
 class SimplyRetsCustomPostPages {
 
     public static function srActivate() {
         SimplyRetsCustomPostPages::srRegisterPostType();
+        SimplyRetsApiHelper::srUpdateAdvSearchOptions();
+
+        wp_schedule_event(
+            get_option('sr_adv_search_meta_timestamp')
+            , 'daily'
+            , 'sr_update_adv_search_options_action'
+        );
+
         add_option( 'sr_api_name', 'simplyrets' );
         add_option( 'sr_api_key', 'simplyrets' );
         add_option( 'sr_listing_gallery', 'fancy' );
@@ -82,6 +91,10 @@ class SimplyRetsCustomPostPages {
         $vars[] = "listing_id";
         $vars[] = "listing_title";
         $vars[] = "listing_price";
+        $vars[] = "limit";
+        $vars[] = "offset";
+        $vars[] = "advanced";
+        $vars[] = "status";
         // sr prefixes are for the search form
         $vars[] = "sr_minprice";
         $vars[] = "sr_maxprice";
@@ -90,12 +103,20 @@ class SimplyRetsCustomPostPages {
         $vars[] = "sr_minbaths";
         $vars[] = "sr_maxbaths";
         $vars[] = "sr_q";
+        $vars[] = "sr_keywords";
         $vars[] = "sr_type";
+        $vars[] = "sr_ptype";
         $vars[] = "sr_agent";
-        $vars[] = "limit";
-        $vars[] = "offset";
+        $vars[] = "sr_sort";
         // post type
         $vars[] = "sr-listings";
+        // advanced search form parameters
+        $vars[] = "sr_lotsize";
+        $vars[] = "sr_area";
+        $vars[] = "sr_cities";
+        $vars[] = "sr_neighborhoods";
+        $vars[] = "sr_amenities";
+        $vars[] = "sr_features";
         return $vars;
     }
 
@@ -402,6 +423,7 @@ class SimplyRetsCustomPostPages {
         return $new_template;
     }
 
+
     public static function srPostDefaultContent( $content ) {
         require_once( plugin_dir_path(__FILE__) . 'simply-rets-api-helper.php' );
         $post_type = get_post_type();
@@ -423,11 +445,45 @@ class SimplyRetsCustomPostPages {
             $maxbaths = get_query_var( 'sr_maxbaths', '' );
             $minprice = get_query_var( 'sr_minprice', '' );
             $maxprice = get_query_var( 'sr_maxprice', '' );
-            $keywords = get_query_var( 'sr_q',        '' );
-            $type     = get_query_var( 'sr_type',     '' );
-            $agent    = get_query_var( 'sr_agent',    '' );
-            $limit    = get_query_var( 'limit',       '' );
-            $offset   = get_query_var( 'offset',      '' );
+            $keywords = get_query_var( 'sr_keywords', '' );
+            $type     = get_query_var( 'sr_ptype', '' );
+            $agent    = get_query_var( 'sr_agent', '' );
+            /** Pagination */
+            $limit    = get_query_var( 'limit', '' );
+            $offset   = get_query_var( 'offset', '' );
+            /** Advanced Search */
+            $advanced  = get_query_var( 'advanced', '' );
+            $status    = get_query_var( 'status', '' );
+            $lotsize   = get_query_var( 'sr_lotsize', '' );
+            $area      = get_query_var( 'sr_area', '' );
+            $sort      = get_query_var( 'sr_sort', '' );
+
+            $features = isset($_GET['sr_features']) ? $_GET['sr_features'] : '';
+            if(isset($features) && is_array($features)) {
+                foreach($features as $key => $feature) {
+                    $features_string .= "&features=$feature";
+                }
+            }
+
+            $cities = isset($_GET['sr_cities']) ? $_GET['sr_cities'] : '';
+            if(isset($cities) && is_array($cities)) {
+                foreach($cities as $key => $city) {
+                    $cities_string .= "&cities=$city";
+                }
+            }
+
+            $neighborhoods = isset($_GET['sr_neighborhoods']) ? $_GET['sr_neighborhoods'] : '';
+            if(isset($neighborhoods) && is_array($neighborhoods)) {
+                foreach($neighborhoods as $key => $neighborhood) {
+                    $neighborhoods_string .= "&neighborhoods=$neighborhood";
+                }
+            }
+            $amenities = isset($_GET['sr_amenities']) ? $_GET['sr_amenities'] : '';
+            if(isset($amenities) && is_array($amenities)) {
+                foreach($amenities as $key => $amenity) {
+                    $amenities_string .= "&amenities=$amenity";
+                }
+            }
 
             // these should correlate with what the api expects as filters
             $listing_params = array(
@@ -440,9 +496,19 @@ class SimplyRetsCustomPostPages {
                 "maxbaths"  => $maxbaths,
                 "minprice"  => $minprice,
                 "maxprice"  => $maxprice,
+
+                /** Pagination */
                 "limit"     => $limit,
-                "offset"    => $offset
+                "offset"    => $offset,
+
+                /** Advanced Search */
+                "lotsize"   => $lotsize,
+                "area"      => $area,
+                "status"    => $status,
+
+                "sort"      => $sort
             );
+
 
             foreach( $listing_params as $param => $val ) {
                 if( !$val == '' ) {
@@ -450,9 +516,28 @@ class SimplyRetsCustomPostPages {
                 }
             }
 
-            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
-            $content .= do_shortcode( "[sr_search_form  $filters_string]");
-            $content .= $listings_content;
+            if( !$advanced || !$advanced == "true" ) {
+              $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
+              $content .= do_shortcode( "[sr_search_form  $filters_string]");
+              $content .= $listings_content;
+              return $content;
+
+            } else {
+
+              $qs = '?';
+              $qs .= http_build_query( array_filter( $listing_params ) );
+              $qs .= $features_string;
+              $qs .= $cities_string;
+              $qs .= $neighborhoods_string;
+              $qs .= $amenities_string;
+
+              $qs = str_replace(' ', '%20', $qs);
+              $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $qs );
+
+              $content .= do_shortcode( "[sr_search_form  advanced='True' $filters_string]");
+              $content .= $listings_content;
+              return $content;
+            }
 
             return $content;
         }
@@ -491,9 +576,9 @@ class SimplyRetsCustomPostPages {
             $post_addr  = get_query_var( 'listing_title', 'none' );
             $post_price = get_query_var( 'listing_price', '0' );
 
-            $listing_USD = $post_price == '' ? '$0' : '$' . number_format( $post_price );
+            $listing_USD = $post_price == '' ? '' : '$' . number_format( $post_price );
             $title_normalize = "background-color:transparent;padding:0px;";
-            $post_title = "{$post_addr} - <span style='{$title_normalize}'><i>{$listing_USD}</i></span>";
+            $post_title = "{$post_addr} <span style='{$title_normalize}'><small><i> {$listing_USD}</i></small></span>";
 
             $post = (object)array(
                 "ID"             => $post_id,
@@ -515,6 +600,7 @@ class SimplyRetsCustomPostPages {
         }
         // if we catch a search results query, create a new post on the fly
         if( $wp_query->query['sr-listings'] == "sr-search" ) {
+
             $post_id = get_query_var( 'sr_minprice', '9998' );
 
             $post = (object)array(
@@ -532,7 +618,7 @@ class SimplyRetsCustomPostPages {
                 "post_type"      => "sr-listings"
             );
 
-		    $posts = array( $post );
+            $posts = array( $post );
             return $posts;
         }
 
