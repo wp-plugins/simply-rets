@@ -71,6 +71,104 @@ class SimplyRetsApiHelper {
 
     }
 
+    public static function srApiOptionsRequest( $url ) {
+        $wp_version = get_bloginfo('version');
+        $php_version = phpversion();
+
+        $ua_string     = "SimplyRETSWP/1.4.0 Wordpress/{$wp_version} PHP/{$php_version}";
+        $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
+
+        if( is_callable( 'curl_init' ) ) {
+            $curl_info = curl_version();
+
+            // init curl and set options
+            $ch = curl_init();
+            $curl_version = $curl_info['version'];
+            $headers[] = $accept_header;
+
+            curl_setopt( $ch, CURLOPT_URL, $url );
+            curl_setopt( $ch, CURLOPT_HTTPHEADER, $headers );
+            curl_setopt( $ch, CURLOPT_USERAGENT, $ua_string . " cURL/{$curl_version}" );
+            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+            curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "OPTIONS" );
+
+            // make request to api
+            $request = curl_exec( $ch );
+
+            // decode the reponse body
+            $response_array = json_decode( $request );
+
+            // close curl connection and return value
+            curl_close( $ch );
+            return $response_array;
+
+        } else {
+            return;
+        }
+    }
+
+    public static function srUpdateAdvSearchOptions() {
+        $options_url = SimplyRetsApiHelper::srRequestUrlBuilder( array() );
+        $options     = SimplyRetsApiHelper::srApiOptionsRequest( $options_url );
+
+        $defaultArray   = array();
+        $defaultTypes   = array("Residential", "Condominium", "Rental");
+        $defaultExpires = time();
+
+        $types = $options->fields->type;
+        !isset( $types ) || empty( $types )
+            ? $types = $defaultTypes
+            : $types = $options->fields->type;
+
+        $expires = $options->expires;
+        !isset( $expires ) || empty( $expires )
+            ? $expires = $defaultExpires
+            : $expires = $options->expires;
+
+        $status = $options->fields->status;
+        !isset( $status ) || empty( $status )
+            ? $status = $defaultArray
+            : $status = $options->fields->status;
+
+        $counties = $options->fields->counties;
+        !isset( $counties ) || empty( $counties )
+            ? $counties = $defaultArray
+            : $counties = $options->fields->counties;
+
+        $cities = $options->fields->cities;
+        !isset( $cities ) || empty( $cities )
+            ? $cities = $defaultArray
+            : $cities = $options->fields->cities;
+
+        $features = $options->fields->features;
+        !isset( $features ) || empty( $features )
+            ? $features = $defaultArray
+            : $features = $options->fields->features;
+
+        $neighborhoods = $options->fields->neighborhoods;
+        !isset( $neighborhoods ) || empty( $neighborhoods )
+            ? $neighborhoods = $defaultArray
+            : $neighborhoods = $options->fields->neighborhoods;
+
+        update_option( 'sr_adv_search_meta_timestamp', $expires );
+        update_option( 'sr_adv_search_meta_status', $status );
+        update_option( 'sr_adv_search_meta_types', $types );
+        update_option( 'sr_adv_search_meta_county', $counties );
+        update_option( 'sr_adv_search_meta_city', $cities );
+        update_option( 'sr_adv_search_meta_features', $features );
+        update_option( 'sr_adv_search_meta_neighborhoods', $neighborhoods );
+        // foreach( $options as $key => $option ) {
+        //     if( !$option == NULL ) {
+        //         update_option( 'sr_adv_search_option_' . $key, $option );
+        //     } else {
+        //         echo '';
+        //     }
+        // }
+
+        return;
+
+    }
+
 
     /**
      * Make the request the SimplyRETS API. We try to use
@@ -81,7 +179,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.3.4 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.4.0 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -182,7 +280,11 @@ class SimplyRetsApiHelper {
             parse_str( $link_parts['query'], $output );
             if( !empty( $output ) ) {
                 foreach( $output as $query=>$parameter) {
-                    if( $query !== 'offset' && $query !== 'limit' ) {
+                    if( $query == 'type' ) {
+                        $output['sr_p' . $query] = $output[$query];
+                        unset( $output[$query] );
+                    }
+                    if( $query !== 'offset' && $query !== 'limit' && $query !== 'type' ) {
                         $output['sr_' . $query] = $output[$query];
                         unset( $output[$query] );
                     }
@@ -219,11 +321,6 @@ class SimplyRetsApiHelper {
                             array('jquery')
         );
         wp_enqueue_script( 'simply-rets-galleria-js' );
-
-        // wp_register_script( 'simply-rets-google-maps',
-        //                     'http://maps.googleapis.com/maps/api/js?sensor=true'
-        // );
-        // wp_enqueue_script( 'simply-rets-google-maps' );
     }
 
 
@@ -308,13 +405,12 @@ HTML;
          * The error code comes from the UrlBuilder function.
         */
         if( $listing == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
+            $err = SrMessages::noResultsMsg();
             return $err;
         }
-        if( array_key_exists( "error", $listing ) ) {
-            $error = $listing->error;
-            $cont .= "<hr><p>{$error}</p>";
-            return $cont;
+        if( array_key_exists( "error", $listing ) || array_key_exists( "errors", $listing ) ) {
+            $err = SrMessages::noResultsMsg();
+            return $err;
         }
 
         // internal unique id
@@ -363,6 +459,7 @@ HTML;
         $listing_style = $listing->property->style;
         $style = SimplyRetsApiHelper::srDetailsTable($listing_style, "Property Style");
         // subdivision
+        // TODO: Check if neighborhood
         $listing_subdivision = $listing->property->subdivision;
         $subdivision = SimplyRetsApiHelper::srDetailsTable($listing_subdivision, "Subdivision");
         // unit
@@ -705,12 +802,27 @@ HTML;
     }
 
 
+    public static function resultDataColumnMarkup($val, $name, $reverse=false) {
+        if( $val == "" ) {
+            $val = "";
+        } else {
+            if($reverse == false) {
+                $val = "<li>$val $name</li>";
+            }
+            else {
+                $val = "<li>$name $val</li>";
+            }
+        }
+        return $val;
+    }
+
+
     public static function srResidentialResultsGenerator( $response, $settings ) {
         $br                = "<br>";
         $cont              = "";
         $pagination        = $response['pagination'];
         $response          = $response['response'];
-        $map_position      = get_option('sr_search_map_position');
+        $map_position      = get_option('sr_search_map_position', 'list_only');
         $show_listing_meta = SrUtils::srShowListingMeta();
         $pag               = SrUtils::buildPaginationLinks( $pagination );
         $prev_link         = $pag['prev'];
@@ -723,15 +835,11 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
-        if( $response == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
+        if( $response == NULL || array_key_exists( "errors", $response ) ) {
+            $err = SrMessages::noResultsMsg();
             return $err;
         }
-        if( array_key_exists( "error", $response ) ) {
-            $error = "SimplyRETS could not find any properties matching your criteria. Please try another search.";
-            $response_markup = "<hr><p>{$error}</p><br>";
-            return $response_markup;
-        }
+
         $response_size = sizeof( $response );
         if( !array_key_exists( "0", $response ) ) {
             $response = array( $response );
@@ -746,27 +854,30 @@ HTML;
         foreach( $response as $listing ) {
             $listing_uid        = $listing->mlsId;
             $mlsid              = $listing->listingId;
-            $propType           = $listing->property->type;
+            $listing_price      = $listing->listPrice;
+            $list_date          = $listing->listDate;
+            $remarks            = $listing->remarks;
+            $city               = $listing->address->city;
+            $county             = $listing->geo->county;
             $address            = $listing->address->full;
-            $lng                = $listing->geo->lng;
-            $lat                = $listing->geo->lat;
-            $bedrooms           = $listing->property->bedrooms;
-            $bathsFull          = $listing->property->bathsFull;
-            $area               = $listing->property->area; // might be empty
-            $subdivision        = $listing->property->subdivision;
-            $yearBuilt          = $listing->property->yearBuilt;
+            $zip                = $listing->address->postalCode;
             $listing_agent_id   = $listing->agent->id;
             $listing_agent_name = $listing->agent->firstName;
-            $list_date          = $listing->listDate;
-            $city               = $listing->address->city;
+            $lng                = $listing->geo->lng;
+            $lat                = $listing->geo->lat;
             $mls_status         = $listing->mls->status;
-            $remarks            = $listing->remarks;
-            $zip                = $listing->address->postalCode;
+            $propType           = $listing->property->type;
+            $bedrooms           = $listing->property->bedrooms;
+            $bathsFull          = $listing->property->bathsFull;
+            $bathsHalf          = $listing->property->bathsHalf;
+            $area               = $listing->property->area; // might be empty
+            $lotSize            = $listing->property->lotSize; // might be empty
+            $subdivision        = $listing->property->subdivision;
             $style              = $listing->property->style;
-            $listing_price      = $listing->listPrice;
-            $listing_USD        = '$' . number_format( $listing_price );
+            $yearBuilt          = $listing->property->yearBuilt;
 
             $addrFull = $address . ', ' . $city . ' ' . $zip;
+            $listing_USD = $listing_price == "" ? "" : '$' . number_format( $listing_price );
 
             if( $bedrooms == null || $bedrooms == "" ) {
                 $bedrooms = 0;
@@ -774,13 +885,11 @@ HTML;
             if( $bathsFull == null || $bathsFull == "" ) {
                 $bathsFull = 0;
             }
-            if( $area == 0 ) {
-                $area = 'n/a';
-            } else {
-                $area = number_format( $area );
+            if( $bathsHalf == null || $bathsHalf == "" ) {
+                $bathsHalf = 0;
             }
-            if( $yearBuilt == '' ) {
-                $yearBuilt = 'n/a';
+            if( !$area == 0 ) {
+                $area = number_format( $area );
             }
             // show listing date if setting is on
             if( $show_listing_meta == true ) {
@@ -828,6 +937,28 @@ HTML;
             }
             /************************************************/
 
+            /*
+             * Variables that contain markup for sr-data-column
+             * If the field is empty, they'll be hidden
+             * TODO: Create a ranking system 1 - 10 to smartly replace missing values
+             */
+            $bedsMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($bedrooms, 'Bedrooms');
+            $bathsMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($bathsFull, 'Full Baths');
+            $areaMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($area, '<span class="sr-listing-area-sqft">SqFt</span>');
+            $yearMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($yearBuilt, 'Built in', true);
+            $cityMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($city, 'The City of', true);
+            $mlsidMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($mlsid, 'MLS #:', true);
+
+            if( $area == 0 ) {
+                $areaMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($bathsHalf, 'Half Baths', false);
+                if( $areaMarkup == 0 ) {
+                    $areaMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($county, "County", false);
+                }
+            }
+
+            if( $yearBuilt == 0 ) {
+                $yearMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($subdivision, "");
+            }
 
             // append markup for this listing to the content
             $resultsMarkup .= <<<HTML
@@ -845,30 +976,14 @@ HTML;
                 </div>
                 <div class="sr-secondary-data">
                   <ul class="sr-data-column">
-                    <li>
-                      <span>$bedrooms Bedrooms</span>
-                    </li>
-                    <li>
-                      <span>$bathsFull Full Baths</span>
-                    </li>
-                    <li>
-                      <span>$area <span class="sr-listing-area-sqft">SqFt</span></span>
-                    </li>
-                    <li>
-                      <span>Built in $yearBuilt</span>
-                    </li>
+                    $cityMarkup
+                    $yearMarkup
+                    $mlsidMarkup
                   </ul>
                   <ul class="sr-data-column">
-                    <li>
-                      <span>$subdivision</span>
-                    </li>
-                    <li>
-                      <span>The City of $city</span>
-                    </li>
-                    <li>
-                      <span>Listed by $listing_agent_name</span>
-                    </li>
-                    $list_date_markup
+                    $bedsMarkup
+                    $bathsMarkup
+                    $areaMarkup
                   </ul>
                 </div>
                 <div style="clear:both;">
@@ -904,6 +1019,10 @@ HTML;
             $cont .= '<hr>';
             $cont .= $mapMarkup;
         }
+        else
+        {
+            $cont .= $resultsMarkup;
+        }
 
         $cont .= "<hr><p class='sr-pagination'>$prev_link $next_link</p>";
         $cont .= "<br><p><small><i>This information is believed to be accurate, but without any warranty.</i></small></p>";
@@ -924,8 +1043,8 @@ HTML;
         $response = $response['response'];
         $response_size = sizeof( $response );
 
-        if( $response == NULL ) {
-            $err = "SimplyRETS could not complete this search. Please try searching with different parameters.";
+        if( $response == NULL || array_key_exists( "errors", $response ) ) {
+            $err = SrMessages::noResultsMsg();
             return $err;
         }
 
