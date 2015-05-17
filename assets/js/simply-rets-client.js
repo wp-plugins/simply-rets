@@ -44,4 +44,9 @@ jQuery(document).ready(function() {
       }
   });
 
+  // [sr_listings_slider]
+  jQuery("#simplyrets-listings-slider").owlCarousel({
+    items: 4
+  });
+
 });
