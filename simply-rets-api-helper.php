@@ -37,10 +37,10 @@ class SimplyRetsApiHelper {
         return $response_markup;
     }
 
-    public static function retrieveListingsSlider( $params ) {
+    public static function retrieveListingsSlider( $params, $settings = NULL ) {
         $request_url      = SimplyRetsApiHelper::srRequestUrlBuilder( $params );
         $request_response = SimplyRetsApiHelper::srApiRequest( $request_url );
-        $response_markup  = SimplyRetsApiHelper::srListingSliderGenerator( $request_response );
+        $response_markup  = SimplyRetsApiHelper::srListingSliderGenerator( $request_response, $settings );
 
         return $response_markup;
     }
@@ -82,7 +82,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.4.3 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.0 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -115,55 +115,68 @@ class SimplyRetsApiHelper {
     }
 
     public static function srUpdateAdvSearchOptions() {
-        $options_url = SimplyRetsApiHelper::srRequestUrlBuilder( array() );
-        $options     = SimplyRetsApiHelper::srApiOptionsRequest( $options_url );
+        $authid   = get_option('sr_api_name');
+        $authkey  = get_option('sr_api_key');
+        $url      = "https://{$authid}:{$authkey}@api.simplyrets.com/";
+        $options  = SimplyRetsApiHelper::srApiOptionsRequest( $url );
+        $vendors  = $options->vendors;
 
-        $defaultArray   = array();
-        $defaultTypes   = array("Residential", "Condominium", "Rental");
-        $defaultExpires = time();
+        update_option("sr_adv_search_meta_vendors", $vendors);
 
-        $types = $options->fields->type;
-        !isset( $types ) || empty( $types )
-            ? $types = $defaultTypes
-            : $types = $options->fields->type;
+        foreach((array)$vendors as $vendor) {
+            $vendorUrl = $url . "properties?vendor=$vendor";
+            $vendorOptions = SimplyRetsApiHelper::srApiOptionsRequest($vendorUrl);
 
-        $expires = $options->expires;
-        !isset( $expires ) || empty( $expires )
-            ? $expires = $defaultExpires
-            : $expires = $options->expires;
+            $defaultArray   = array();
+            $defaultTypes   = array("Residential", "Condominium", "Rental");
+            $defaultExpires = time();
 
-        $status = $options->fields->status;
-        !isset( $status ) || empty( $status )
-            ? $status = $defaultArray
-            : $status = $options->fields->status;
+            $types = $vendorOptions->fields->type;
+            !isset( $types ) || empty( $types )
+                ? $types = $defaultTypes
+                : $types = $vendorOptions->fields->type;
 
-        $counties = $options->fields->counties;
-        !isset( $counties ) || empty( $counties )
-            ? $counties = $defaultArray
-            : $counties = $options->fields->counties;
+            $expires = $vendorOptions->expires;
+            !isset( $expires ) || empty( $expires )
+                ? $expires = $defaultExpires
+                : $expires = $vendorOptions->expires;
 
-        $cities = $options->fields->cities;
-        !isset( $cities ) || empty( $cities )
-            ? $cities = $defaultArray
-            : $cities = $options->fields->cities;
+            $status = $vendorOptions->fields->status;
+            !isset( $status ) || empty( $status )
+                ? $status = $defaultArray
+                : $status = $vendorOptions->fields->status;
 
-        $features = $options->fields->features;
-        !isset( $features ) || empty( $features )
-            ? $features = $defaultArray
-            : $features = $options->fields->features;
+            $counties = $vendorOptions->fields->counties;
+            !isset( $counties ) || empty( $counties )
+                ? $counties = $defaultArray
+                : $counties = $vendorOptions->fields->counties;
 
-        $neighborhoods = $options->fields->neighborhoods;
-        !isset( $neighborhoods ) || empty( $neighborhoods )
-            ? $neighborhoods = $defaultArray
-            : $neighborhoods = $options->fields->neighborhoods;
+            $cities = $vendorOptions->fields->cities;
+            !isset( $cities ) || empty( $cities )
+                ? $cities = $defaultArray
+                : $cities = $vendorOptions->fields->cities;
 
-        update_option( 'sr_adv_search_meta_timestamp', $expires );
-        update_option( 'sr_adv_search_meta_status', $status );
-        update_option( 'sr_adv_search_meta_types', $types );
-        update_option( 'sr_adv_search_meta_county', $counties );
-        update_option( 'sr_adv_search_meta_city', $cities );
-        update_option( 'sr_adv_search_meta_features', $features );
-        update_option( 'sr_adv_search_meta_neighborhoods', $neighborhoods );
+            $features = $vendorOptions->fields->features;
+            !isset( $features ) || empty( $features )
+                ? $features = $defaultArray
+                : $features = $vendorOptions->fields->features;
+
+            $neighborhoods = $vendorOptions->fields->neighborhoods;
+            !isset( $neighborhoods ) || empty( $neighborhoods )
+                ? $neighborhoods = $defaultArray
+                : $neighborhoods = $vendorOptions->fields->neighborhoods;
+
+            update_option( "sr_adv_search_meta_timestamp_$vendor", $expires );
+            update_option( "sr_adv_search_meta_status_$vendor", $status );
+            update_option( "sr_adv_search_meta_types_$vendor", $types );
+            update_option( "sr_adv_search_meta_county_$vendor", $counties );
+            update_option( "sr_adv_search_meta_city_$vendor", $cities );
+            update_option( "sr_adv_search_meta_features_$vendor", $features );
+            update_option( "sr_adv_search_meta_neighborhoods_$vendor", $neighborhoods );
+
+        }
+
+
         // foreach( $options as $key => $option ) {
         //     if( !$option == NULL ) {
         //         update_option( 'sr_adv_search_option_' . $key, $option );
@@ -186,7 +199,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.4.3 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.0 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -218,7 +231,7 @@ class SimplyRetsApiHelper {
 
             $srResponse = array();
             $srResponse['pagination'] = $pag_links;
-            $srResponse['response'] = $response_array;;
+            $srResponse['response'] = $response_array;
 
             // close curl connection
             curl_close( $ch );
@@ -279,13 +292,19 @@ class SimplyRetsApiHelper {
         $pag_links['prev'] = $prev_link;
         $pag_links['next'] = $next_link;
 
+
         /**
          * Transform query parameters to what the Wordpress client needs
          */
         foreach( $pag_links as $key=>$link ) {
             $link_parts = parse_url( $link );
-            parse_str( $link_parts['query'], $output );
-            if( !empty( $output ) ) {
+
+            // Do NOT use the builtin parse_str, use our custom function
+            // proper_parse_str instead
+            // parse_str( $link_parts['query'], $output );
+            $output = SrUtils::proper_parse_str($link_parts['query']);
+
+            if( !empty( $output ) && !in_array(NULL, $output, true) ) {
                 foreach( $output as $query=>$parameter) {
                     if( $query == 'type' ) {
                         $output['sr_p' . $query] = $output[$query];
@@ -312,33 +331,37 @@ class SimplyRetsApiHelper {
 
 
     public static function simplyRetsClientCss() {
-        wp_register_style( 'simply-rets-client-css', plugins_url( 'assets/css/simply-rets-client.css', __FILE__ ) );
-        wp_enqueue_style( 'simply-rets-client-css' );
+        wp_register_style(
+            'simply-rets-client-css',
+            plugins_url('assets/css/simply-rets-client.css', __FILE__)
+        ); wp_enqueue_style('simply-rets-client-css');
 
-        wp_register_style( 'simply-rets-carousel', 'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.css');
-        wp_enqueue_style( 'simply-rets-carousel' );
+        wp_register_style(
+            'simply-rets-carousel',
+            'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.css'
+        ); wp_enqueue_style('simply-rets-carousel');
 
-        wp_register_style( 'simply-rets-carousel-theme', 'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.theme.min.css');
-        wp_enqueue_style( 'simply-rets-carousel-theme' );
+        wp_register_style(
+            'simply-rets-carousel-theme',
+            'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.theme.min.css'
+        ); wp_enqueue_style('simply-rets-carousel-theme');
     }
 
     public static function simplyRetsClientJs() {
-        wp_register_script( 'simply-rets-client-js',
-                            plugins_url( 'assets/js/simply-rets-client.js', __FILE__ ),
-                            array('jquery')
-        );
-        wp_enqueue_script( 'simply-rets-client-js' );
+        wp_register_script('simply-rets-client-js',
+                           plugins_url('assets/js/simply-rets-client.js', __FILE__),
+                           array('jquery')
+        ); wp_enqueue_script('simply-rets-client-js');
 
-        wp_register_script( 'simply-rets-galleria-js',
-                            plugins_url( 'assets/galleria/galleria-1.4.2.min.js', __FILE__ ),
-                            array('jquery')
-        );
-        wp_enqueue_script( 'simply-rets-galleria-js' );
-        wp_register_script( 'simply-rets-carousel',
-                            'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.js',
-                            array('jquery')
-        );
-        wp_enqueue_script( 'simply-rets-carousel' );
+        wp_register_script('simply-rets-galleria-js',
+                           plugins_url('assets/galleria/galleria-1.4.2.min.js', __FILE__),
+                           array('jquery')
+        ); wp_enqueue_script('simply-rets-galleria-js');
+
+        wp_register_script('simply-rets-carousel',
+                           'https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.js',
+                           array('jquery')
+        ); wp_enqueue_script('simply-rets-carousel');
     }
 
 
@@ -415,7 +438,7 @@ HTML;
     public static function srResidentialDetailsGenerator( $listing ) {
         $br = "<br>";
         $cont = "";
-        $contact_page = get_option( 'sr_contact_page' );
+        $contact_page = get_option('sr_contact_page');
 
         $listing = $listing['response'];
         /*
@@ -423,12 +446,10 @@ HTML;
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
-        if( $listing == NULL ) {
-            $err = SrMessages::noResultsMsg();
-            return $err;
-        }
-        if( array_key_exists( "error", $listing ) || array_key_exists( "errors", $listing ) ) {
-            $err = SrMessages::noResultsMsg();
+        if($listing == NULL
+           || array_key_exists("error", $listing)
+           || array_key_exists("errors", $listing)) {
+            $err = SrMessages::noResultsMsg((array)$listing);
             return $err;
         }
 
@@ -611,7 +632,7 @@ HTML;
 
         if( get_option('sr_show_leadcapture') ) {
             $contact_text = 'Contact us about this listing';
-            $cf_listing = $address . ' ( MLS #' . $listing_mlsid . ' )';
+            $cf_listing = $listing_address . ' ( MLS #' . $listing_mlsid . ' )';
             $contact_markup = SimplyRetsApiHelper::srContactFormMarkup($cf_listing);
         } else {
             $contact_text = '';
@@ -833,15 +854,23 @@ HTML;
         $prev_link         = $pag['prev'];
         $next_link         = $pag['next'];
 
-        isset( $settings['show_map'] ) ? $map_setting = $settings['show_map'] : $map_setting = '';
+        $vendor      = isset($settings['vendor']) ? $settings['vendor'] : '';
+        $map_setting = isset($settings['show_map']) ? $settings['show_map'] : '';
+
+        if(empty($vendor)) {
+            $vendor = get_query_var('sr_vendor', '');
+        }
 
         /*
          * check for an error code in the array first, if it's
          * there, return it - no need to do anything else.
          * The error code comes from the UrlBuilder function.
         */
-        if( $response == NULL || array_key_exists( "errors", $response ) ) {
-            $err = SrMessages::noResultsMsg();
+        if($response == NULL
+           || array_key_exists("errors", $response)
+           || array_key_exists("error", $response)) {
+
+            $err = SrMessages::noResultsMsg((array)$response);
             return $err;
         }
 
@@ -909,8 +938,13 @@ HTML;
             }
             $main_photo = trim($listingPhotos[0]);
 
+            // listing link to details
             $listing_link = get_home_url() .
-                "/?sr-listings=sr-single&listing_id=$listing_uid&listing_price=$listing_price&listing_title=$address";
+                          "/?sr-listings=sr-single&" .
+                          "listing_id=$listing_uid&" .
+                          "sr_vendor=$vendor&" .
+                          "listing_price=$listing_price&" .
+                          "listing_title=$address";
             $link = str_replace( ' ', '%20', $listing_link );
             $link = str_replace( '#', '%23', $link );
 
@@ -1048,8 +1082,11 @@ HTML;
         $response = $response['response'];
         $response_size = sizeof( $response );
 
-        if( $response == NULL || array_key_exists( "errors", $response ) ) {
-            $err = SrMessages::noResultsMsg();
+        if($response == NULL
+           || array_key_exists( "error", $response )
+           || array_key_exists( "errors", $response )) {
+
+            $err = SrMessages::noResultsMsg($response);
             return $err;
         }
 
@@ -1195,9 +1232,13 @@ HTML;
     }
 
 
-    public static function srListingSliderGenerator( $response ) {
+    public static function srListingSliderGenerator( $response, $settings ) {
         $listings = $response['response'];
         $inner;
+        if(!empty($settings['random']) && $settings['random'] === "true") {
+            echo "shuffling";
+            shuffle($listings);
+        }
         foreach($listings as $l) {
             $uid     = $l->mlsId;
             $address = $l->address->full;
