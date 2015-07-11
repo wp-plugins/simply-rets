@@ -9,20 +9,20 @@
 
 
 /* Code starts here */
-add_action( 'init',                  array( 'SimplyRetsCustomPostPages', 'srRegisterPostType' ) );
-add_filter( 'comments_template',     array( 'SimplyRetsCustomPostPages', 'srClearComments' ) );
-add_filter( 'single_template',       array( 'SimplyRetsCustomPostPages', 'srLoadPostTemplate' ) );
-add_filter( 'the_content',           array( 'SimplyRetsCustomPostPages', 'srPostDefaultContent' ) );
-add_filter( 'the_posts',             array( 'SimplyRetsCustomPostPages', 'srCreateDynamicPost' ) );
-add_action( 'add_meta_boxes',        array( 'SimplyRetsCustomPostPages', 'postFilterMetaBox' ) );
-add_action( 'add_meta_boxes',        array( 'SimplyRetsCustomPostPages', 'postTemplateMetaBox' ) );
-add_action( 'save_post',             array( 'SimplyRetsCustomPostPages', 'postFilterMetaBoxSave' ) );
-add_action( 'save_post',             array( 'SimplyRetsCustomPostPages', 'postTemplateMetaBoxSave' ) );
-add_action( 'admin_init',            array( 'SimplyRetsCustomPostPages', 'postFilterMetaBoxCss' ) );
-add_action( 'admin_enqueue_scripts', array( 'SimplyRetsCustomPostPages', 'postFilterMetaBoxJs' ) );
+add_action('init',                  array('SimplyRetsCustomPostPages', 'srRegisterPostType'));
+add_filter('comments_template',     array('SimplyRetsCustomPostPages', 'srClearComments'));
+add_filter('single_template',       array('SimplyRetsCustomPostPages', 'srLoadPostTemplate'));
+add_filter('the_content',           array('SimplyRetsCustomPostPages', 'srPostDefaultContent'));
+add_filter('the_posts',             array('SimplyRetsCustomPostPages', 'srCreateDynamicPost'));
+add_action('add_meta_boxes',        array('SimplyRetsCustomPostPages', 'postFilterMetaBox'));
+add_action('add_meta_boxes',        array('SimplyRetsCustomPostPages', 'postTemplateMetaBox'));
+add_action('save_post',             array('SimplyRetsCustomPostPages', 'postFilterMetaBoxSave'));
+add_action('save_post',             array('SimplyRetsCustomPostPages', 'postTemplateMetaBoxSave'));
+add_action('admin_init',            array('SimplyRetsCustomPostPages', 'postFilterMetaBoxCss'));
+add_action('admin_enqueue_scripts', array('SimplyRetsCustomPostPages', 'postFilterMetaBoxJs'));
 // ^TODO: load css/js only on sr-listings post type pages when admin
 //  and move these into a constructor
-add_action( 'sr_update_adv_search_meta_action', array( 'SimplyRetsApiHelper', 'srUpdateAdvSearchOptions' ) );
+add_action('sr_update_adv_search_meta_action', array('SimplyRetsApiHelper', 'srUpdateAdvSearchOptions'));
 
 
 class SimplyRetsCustomPostPages {
@@ -107,6 +107,7 @@ class SimplyRetsCustomPostPages {
         $vars[] = "sr_type";
         $vars[] = "sr_ptype";
         $vars[] = "sr_agent";
+        $vars[] = "sr_brokers";
         $vars[] = "sr_sort";
         // post type
         $vars[] = "sr-listings";
@@ -117,6 +118,9 @@ class SimplyRetsCustomPostPages {
         $vars[] = "sr_neighborhoods";
         $vars[] = "sr_amenities";
         $vars[] = "sr_features";
+        // multi-mls
+        $vars[] = "vendor";
+        $vars[] = "sr_vendor";
         return $vars;
     }
 
@@ -427,14 +431,18 @@ class SimplyRetsCustomPostPages {
     public static function srPostDefaultContent( $content ) {
         require_once( plugin_dir_path(__FILE__) . 'simply-rets-api-helper.php' );
         $post_type = get_post_type();
-        $page_name = get_query_var( 'sr-listings' );
-
+        $page_name = get_query_var('sr-listings');
         $sr_post_type = 'sr-listings';
-        $br = '<br>';
 
         if ( $page_name == 'sr-single' ) {
-            $listing_id = get_query_var( 'listing_id' );
-            $content .= SimplyRetsApiHelper::retrieveListingDetails( '/' . $listing_id );
+            $listing_id = get_query_var('listing_id');
+            $vendor     = get_query_var('sr_vendor', '');
+
+            $vendorQuery = $vendor === "" ? "" : "?vendor=$vendor";
+
+            $resource = "/$listing_id" . "$vendorQuery";
+
+            $content .= SimplyRetsApiHelper::retrieveListingDetails( $resource );
             return $content;
         }
 
@@ -448,6 +456,7 @@ class SimplyRetsCustomPostPages {
             $keywords = get_query_var( 'sr_keywords', '' );
             $type     = get_query_var( 'sr_ptype', '' );
             $agent    = get_query_var( 'sr_agent', '' );
+            $brokers  = get_query_var( 'sr_brokers', '' );
             /** Pagination */
             $limit    = get_query_var( 'limit', '' );
             $offset   = get_query_var( 'offset', '' );
@@ -457,30 +466,34 @@ class SimplyRetsCustomPostPages {
             $lotsize   = get_query_var( 'sr_lotsize', '' );
             $area      = get_query_var( 'sr_area', '' );
             $sort      = get_query_var( 'sr_sort', '' );
+            /** multi mls */
+            $vendor    = get_query_var('sr_vendor', '');
+
 
             $features = isset($_GET['sr_features']) ? $_GET['sr_features'] : '';
-            if(isset($features) && is_array($features)) {
-                foreach($features as $key => $feature) {
+            if(!empty($features)) {
+                foreach((array)$features as $key => $feature) {
                     $features_string .= "&features=$feature";
                 }
             }
 
+
             $cities = isset($_GET['sr_cities']) ? $_GET['sr_cities'] : '';
-            if(isset($cities) && is_array($cities)) {
-                foreach($cities as $key => $city) {
+            if(!empty($cities)) {
+                foreach((array)$cities as $key => $city) {
                     $cities_string .= "&cities=$city";
                 }
             }
 
             $neighborhoods = isset($_GET['sr_neighborhoods']) ? $_GET['sr_neighborhoods'] : '';
-            if(isset($neighborhoods) && is_array($neighborhoods)) {
-                foreach($neighborhoods as $key => $neighborhood) {
+            if(!empty($neighborhoods)) {
+                foreach((array)$neighborhoods as $key => $neighborhood) {
                     $neighborhoods_string .= "&neighborhoods=$neighborhood";
                 }
             }
             $amenities = isset($_GET['sr_amenities']) ? $_GET['sr_amenities'] : '';
-            if(isset($amenities) && is_array($amenities)) {
-                foreach($amenities as $key => $amenity) {
+            if(!empty($amenities)) {
+                foreach((array)$amenities as $key => $amenity) {
                     $amenities_string .= "&amenities=$amenity";
                 }
             }
@@ -490,6 +503,7 @@ class SimplyRetsCustomPostPages {
                 "type"      => $type,
                 "q"         => $keywords,
                 "agent"     => $agent,
+                "brokers"   => $brokers,
                 "minbeds"   => $minbeds,
                 "maxbeds"   => $maxbeds,
                 "minbaths"  => $minbaths,
@@ -505,8 +519,10 @@ class SimplyRetsCustomPostPages {
                 "lotsize"   => $lotsize,
                 "area"      => $area,
                 "status"    => $status,
+                "sort"      => $sort,
 
-                "sort"      => $sort
+                /** Multi MLS */
+                "vendor"    => $vendor
             );
 
 
@@ -517,7 +533,15 @@ class SimplyRetsCustomPostPages {
             }
 
             if( !$advanced || !$advanced == "true" ) {
-              $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params );
+              $qs = '?'
+                  . http_build_query( array_filter( $listing_params ) )
+                  . $features_string
+                  . $cities_string
+                  . $neighborhoods_string
+                  . $amenities_string;
+
+              $qs = str_replace(' ', '%20', $qs);
+              $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $qs );
               $content .= do_shortcode( "[sr_search_form  $filters_string]");
               $content .= $listings_content;
               return $content;
