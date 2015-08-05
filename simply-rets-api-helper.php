@@ -81,7 +81,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.6 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.7 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -198,7 +198,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.6 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.7 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -592,6 +592,7 @@ HTML;
 
 
         $roomsMarkup = '';
+
         if(is_array($listing->property->rooms)) {
 
             $rooms = $listing->property->rooms;
@@ -606,7 +607,12 @@ HTML;
                   <th colspan=\"3\"><h5>Room Details</h5></th></tr></thead>";
 
             foreach($rooms as $room) {
-                $roomSize = "$room->length" .  " x " . "$room->width";
+
+                if(!is_null($room->dimensions)) {
+                    $roomSize = $room->dimensions;
+                } else {
+                    $roomSize = "$room->length" .  " x " . "$room->width";
+                }
                 $level = $room->level;
                 $levelText = empty($level) ? '' : SrUtils::ordinalSuffix($level) . " level";
                 $roomsMarkup .= SimplyRetsApiHelper::srDetailsTable(
