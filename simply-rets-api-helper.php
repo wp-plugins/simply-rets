@@ -81,7 +81,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.7 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.8 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -198,7 +198,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.7 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.8 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -1036,7 +1036,7 @@ HTML;
             $bathsMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($bathsFull, 'Full Baths');
             $areaMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($area, '<span class="sr-listing-area-sqft">SqFt</span>');
             $yearMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($yearBuilt, 'Built in', true);
-            $cityMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($city, 'The City of', true);
+            $cityMarkup  = SimplyRetsApiHelper::resultDataColumnMarkup($city, 'Located in', true);
             $mlsidMarkup = SimplyRetsApiHelper::resultDataColumnMarkup($mlsid, 'MLS #:', true);
 
             if( $area == 0 ) {
@@ -1269,7 +1269,8 @@ HTML;
             $message = esc_textarea( $_POST["sr-cf-message"] ) . ' - ' . $listing;
 
             // get the blog administrator's email address
-            $to = get_option( 'admin_email' );
+            $to = get_option('sr_leadcapture_recipient', '');
+            $to = empty($to) ? get_option('admin_email') : $to;
 
             $headers = "From: $name <$email>" . "\r\n";
 
