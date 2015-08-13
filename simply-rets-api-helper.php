@@ -81,7 +81,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.9 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.10 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -198,7 +198,7 @@ class SimplyRetsApiHelper {
         $wp_version = get_bloginfo('version');
         $php_version = phpversion();
 
-        $ua_string     = "SimplyRETSWP/1.5.9 Wordpress/{$wp_version} PHP/{$php_version}";
+        $ua_string     = "SimplyRETSWP/1.5.10 Wordpress/{$wp_version} PHP/{$php_version}";
         $accept_header = "Accept: application/json; q=0.2, application/vnd.simplyrets-v0.1+json";
 
         if( is_callable( 'curl_init' ) ) {
@@ -905,8 +905,11 @@ HTML;
         $prev_link         = $pag['prev'];
         $next_link         = $pag['next'];
 
-        $vendor      = isset($settings['vendor']) ? $settings['vendor'] : '';
-        $map_setting = isset($settings['show_map']) ? $settings['show_map'] : '';
+        $vendor       = isset($settings['vendor']) ? $settings['vendor'] : '';
+        $map_setting  = isset($settings['show_map']) ? $settings['show_map'] : '';
+
+        /** Allow override of "map_position" admin setting on a per short-code basis */
+        $map_position = isset($settings['map_position']) ? $settings['map_position'] : $map_position;
 
         if(empty($vendor)) {
             $vendor = get_query_var('sr_vendor', '');
