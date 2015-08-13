@@ -47,12 +47,12 @@ class SrShortcodes {
     public function sr_residential_shortcode( $atts ) {
         global $wp_query;
 
-        if( !empty($atts['mlsid']) ) {
-            $mlsid = $atts['mlsid'];
-            $listing_params = array(
-                "q" => $mlsid
-            );
-            $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params, $atts );
+        if(!empty($atts['mlsid'])) {
+            $qs = '/' . $atts['mlsid'];
+            if(array_key_exists('vendor', $atts) && !empty($atts['vendor'])) {
+                $qs .= "?vendor={$atts['vendor']}";
+            }
+            $listings_content = SimplyRetsApiHelper::retrieveRetsListings($qs);
             return $listings_content;
         }
 
@@ -62,7 +62,10 @@ class SrShortcodes {
             $listing_params = $atts;
         }
 
-        if( !isset( $listing_params['neighborhoods'] ) && !isset( $listing_params['postalcodes'] ) ) {
+        if( !isset($listing_params['neighborhoods'])
+            && !isset($listing_params['postalcodes'])
+            && !isset($listing_params['cities']))
+        {
             $listings_content = SimplyRetsApiHelper::retrieveRetsListings( $listing_params, $atts );
             return $listings_content;
 
@@ -79,6 +82,15 @@ class SrShortcodes {
                 $neighborhoods_string = str_replace(' ', '%20', $neighborhoods_string );
             }
 
+            if( isset( $listing_params['cities'] ) && !empty( $listing_params['cities'] ) ) {
+                $cities = explode( ';', $listing_params['cities'] );
+                foreach( $cities as $key => $city ) {
+                    $city = trim( $city );
+                    $cities_string .= "cities=$city&";
+                }
+                $cities_string = str_replace(' ', '%20', $cities_string );
+            }
+
             /**
              * Postal Codes filter is being used - check for multiple values and build query accordingly
              */
@@ -92,13 +104,14 @@ class SrShortcodes {
             }
 
             foreach( $listing_params as $key => $value ) {
-                if( $key !== 'postalcodes' && $key !== 'neighborhoods' ) {
+                if( $key !== 'postalcodes' && $key !== 'neighborhoods' && $key !== 'cities') {
                     $params_string .= $key . "=" . $value . "&";
                 }
             }
 
             $qs = '?';
             $qs .= $neighborhoods_string;
+            $qs .= $cities_string;
             $qs .= $postalcodes_string;
             $qs .= $params_string;
 
@@ -137,10 +150,26 @@ class SrShortcodes {
     public static function sr_search_form_shortcode( $atts ) {
         ob_start();
         $home_url = get_home_url();
+        $singleVendor = SrUtils::isSingleVendor();
 
         if( !is_array($atts) ) {
             $atts = array();
         }
+
+        $availableVendors = get_option('sr_adv_search_meta_vendors', array());
+
+        /** Private Parameters (shortcode attributes) */
+        $vendor  = isset($atts['vendor'])  ? $atts['vendor']  : '';
+        $brokers = isset($atts['brokers']) ? $atts['brokers'] : '';
+        $agent   = isset($atts['agent'])   ? $atts['agent'] : '';
+        $limit   = isset($atts['limit'])   ? $atts['limit']   : '';
+
+        if(empty($vendor) && $singleVendor === true) {
+            $vendor = $availableVendors[0];
+        }
+        $vendorOptions = "_$vendor";
+
+        /** Public parameters */
         $minbeds    = array_key_exists('minbeds',  $atts) ? $atts['minbeds']  : '';
         $maxbeds    = array_key_exists('maxbeds',  $atts) ? $atts['maxbeds']  : '';
         $minbaths   = array_key_exists('minbaths', $atts) ? $atts['minbaths'] : '';
@@ -149,14 +178,12 @@ class SrShortcodes {
         $maxprice   = array_key_exists('maxprice', $atts) ? $atts['maxprice'] : '';
         $keywords   = array_key_exists('q',        $atts) ? $atts['q']        : '';
         $sort       = array_key_exists('sort',     $atts) ? $atts['sort']     : '';
-        /** Advanced Search Parameters */
+        /** Advanced Search */
         $type       = array_key_exists('type',     $atts) ? $atts['type']     : '';
         $adv_type   = array_key_exists('type',     $atts) ? $atts['type']     : '';
-
         $adv_status = array_key_exists('status',   $atts) ? $atts['status']   : '';
         $lotsize    = array_key_exists('lotsize',  $atts) ? $atts['lotsize']  : '';
         $area       = array_key_exists('area',     $atts) ? $atts['area']     : '';
-
         $adv_features      = isset($_GET['sr_features']) ? $_GET['sr_features'] : array();
         $adv_cities        = isset($_GET['sr_cities']) ? $_GET['sr_cities']     : array();
         $adv_neighborhoods = isset($_GET['sr_neighborhoods']) ? $_GET['sr_neighborhoods']     : array();
@@ -183,7 +210,7 @@ class SrShortcodes {
          * price range, *city, *neighborhood (location), * type (condo, townhome, residential),
          * *amenities (int/ext), *status (active, pending, sold), area.
          */
-        $adv_search_types = get_option( 'sr_adv_search_meta_types', array() );
+        $adv_search_types = get_option("sr_adv_search_meta_types_$vendor", array());
         if( empty( $adv_search_types ) ) {
             $adv_search_types = array("Residential", "Condominium", "Rental" );
         }
@@ -195,14 +222,14 @@ class SrShortcodes {
             }
         }
 
-        $adv_search_cities = get_option( 'sr_adv_search_meta_city', array() );
-        sort( $adv_search_cities );
+        $adv_search_cities = get_option("sr_adv_search_meta_city_$vendor", array());
+        sort($adv_search_cities);
         foreach( (array)$adv_search_cities as $key=>$city ) {
-            $checked = in_array($city, $adv_cities) ? 'selected="selected"' : '';
+            $checked = in_array($city, (array)$adv_cities) ? 'selected="selected"' : '';
             $city_options .= "<option value='$city' $checked>$city</option>";
         }
 
-        $adv_search_status = get_option( 'sr_adv_search_meta_status', array() );
+        $adv_search_status = get_option("sr_adv_search_meta_status_$vendor", array());
         foreach( (array)$adv_search_status as $key=>$status) {
             if( $status == $adv_status ) {
                 $status_options .= "<option value='$status' selected />$status</option>";
@@ -211,21 +238,22 @@ class SrShortcodes {
             }
         }
 
-        $adv_search_neighborhoods= get_option( 'sr_adv_search_meta_neighborhoods', array() );
+        $adv_search_neighborhoods= get_option("sr_adv_search_meta_neighborhoods_$vendor", array());
         sort( $adv_search_neighborhoods );
         foreach( (array)$adv_search_neighborhoods as $key=>$neighborhood) {
-            $checked = in_array($neighborhood, $adv_neighborhoods) ? 'selected="selected"' : '';
+            $checked = in_array($neighborhood, (array)$adv_neighborhoods) ? 'selected="selected"' : '';
             $location_options .= "<option value='$neighborhood' $checked>$neighborhood</option>";
         }
 
 
-        $adv_search_features = get_option( 'sr_adv_search_meta_features', array() );
+        $adv_search_features = get_option("sr_adv_search_meta_features_$vendor", array());
         sort( $adv_search_features );
         foreach( (array)$adv_search_features as $key=>$feature) {
-            $checked = in_array($feature, $adv_features) ? 'checked="checked"' : '';
+            $checked = in_array($feature, (array)$adv_features) ? 'checked="checked"' : '';
             $features_options .= "<li class='sr-adv-search-option'>"
                  ."<label><input name='sr_features[]' type='checkbox' value='$feature' $checked />$feature</label></li>";
         }
+
 
         // currently unused
         // $adv_search_counties = get_option( 'sr_adv_search_meta_county' );
@@ -256,7 +284,7 @@ class SrShortcodes {
                       <div class="sr-search-field" id="sr-search-keywords">
                         <input name="sr_keywords"
                                type="text"
-                               placeholder="Keywords, MLS Number, or Market Area"
+                               placeholder="Subdivision, Zipcode, MLS Area, MLS Number, or Market Area"
                                value="<?php echo $keywords ?>" />
                       </div>
 
@@ -352,6 +380,12 @@ class SrShortcodes {
 
                 </div>
 
+                <input type="hidden" name="sr_vendor"  value="<?php echo $vendor; ?>"  />
+                <input type="hidden" name="sr_brokers" value="<?php echo $brokers; ?>" />
+                <input type="hidden" name="sr_agent"   value="<?php echo $agent; ?>" />
+                <input type="hidden" name="limit"      value="<?php echo $limit; ?>" />
+
+
                 <div>
                     <button class="btn button submit btn-submit" style="display:inline-block;">Search</button>
                     <div class="sr-sort-wrapper" style="display:inline-block;float:right;margin-top:10px;">
@@ -417,6 +451,11 @@ class SrShortcodes {
               </div>
             </div>
 
+            <input type="hidden" name="sr_vendor"  value="<?php echo $vendor; ?>"  />
+            <input type="hidden" name="sr_brokers" value="<?php echo $brokers; ?>" />
+            <input type="hidden" name="sr_agent"   value="<?php echo $agent; ?>" />
+            <input type="hidden" name="limit"      value="<?php echo $limit; ?>" />
+
             <div>
                 <input class="submit button btn" type="submit" value="Search Properties">
 
@@ -441,8 +480,10 @@ class SrShortcodes {
 
     public static function sr_listing_slider_shortcode( $atts ) {
         ob_start();
-        $limit = empty($atts['limit']) ? 4 : $atts['limit'];
-        $slider = SimplyRetsApiHelper::retrieveListingsSlider($atts);
+        $atts['limit'] = empty($atts['limit']) ? 8 : $atts['limit'];
+        $settings = array();
+        $settings['random'] = empty($atts['random']) ? NULL : $atts['random'];
+        $slider = SimplyRetsApiHelper::retrieveListingsSlider($atts, $settings);
 
         echo $slider;
 
